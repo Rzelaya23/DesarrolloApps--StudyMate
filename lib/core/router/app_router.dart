@@ -1,0 +1,80 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mi_app/features/auth/screens/login_screen.dart';
+import 'package:mi_app/features/auth/screens/register_screen.dart';
+import 'package:mi_app/features/auth/screens/splash_screen.dart';
+import 'package:mi_app/features/dashboard/screens/dashboard_screen.dart';
+import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
+
+class AppRouter {
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String dashboard = '/dashboard';
+  static const String subjects = '/subjects';
+
+  static final GoRouter router = GoRouter(
+    initialLocation: splash,
+    routes: [
+      // Splash Screen
+      GoRoute(
+        path: splash,
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
+      // Auth Routes
+      GoRoute(
+        path: login,
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: register,
+        name: 'register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+
+      // Main App Routes
+      GoRoute(
+        path: dashboard,
+        name: 'dashboard',
+        builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: subjects,
+        name: 'subjects',
+        builder: (context, state) => const SubjectsScreen(),
+      ),
+    ],
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Página no encontrada',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'La ruta "${state.uri}" no existe',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.go(splash),
+              child: const Text('Volver al inicio'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
