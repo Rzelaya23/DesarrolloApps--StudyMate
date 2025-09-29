@@ -7,6 +7,7 @@ import 'package:mi_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
 import 'package:mi_app/features/subjects/screens/subject_detail_screen.dart';
 import 'package:mi_app/features/calendar/views/calendar_screen.dart';
+import 'package:mi_app/features/profile/screens/profile_screen.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -15,6 +16,7 @@ class AppRouter {
   static const String dashboard = '/dashboard';
   static const String subjects = '/subjects';
   static const String calendar = '/calendar';
+  static const String profile = '/profile';
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
@@ -43,6 +45,13 @@ class AppRouter {
         path: calendar,
         name: 'calendar',
         builder: (context, state) => const CalendarScreen(),
+      ),
+
+      // Profile routes
+      GoRoute(
+        path: profile,
+        name: 'profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
 
       // Main App Routes

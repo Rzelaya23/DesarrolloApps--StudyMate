@@ -63,7 +63,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             case 2:
               break; // ya estás en Calendario
             case 3:
-            // TODO: context.go(AppRouter.profile);
+            context.go('/profile');
               break;
           }
         },

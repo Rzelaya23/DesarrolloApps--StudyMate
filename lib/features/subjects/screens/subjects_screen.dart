@@ -84,7 +84,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               // TODO: Implementar calendario
               break;
             case 3:
-              // TODO: Implementar perfil
+              context.go('/profile');
               break;
           }
         },

@@ -25,7 +25,9 @@ class DashboardScreen extends ConsumerWidget {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                context.go(AppRouter.profile);
+              } else if (value == 'logout') {
                 context.go(AppRouter.login);
               }
             },
@@ -259,7 +261,7 @@ class DashboardScreen extends ConsumerWidget {
               context.go(AppRouter.calendar); // ✅ navega a Calendario
               break;
             case 3:
-            // TODO: Implementar perfil
+              context.go(AppRouter.profile);
               break;
           }
         },
