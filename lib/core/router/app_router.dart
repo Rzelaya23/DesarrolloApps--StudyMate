@@ -5,6 +5,7 @@ import 'package:mi_app/features/auth/screens/register_screen.dart';
 import 'package:mi_app/features/auth/screens/splash_screen.dart';
 import 'package:mi_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
+import 'package:mi_app/features/calendar/views/calendar_screen.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -12,6 +13,7 @@ class AppRouter {
   static const String register = '/register';
   static const String dashboard = '/dashboard';
   static const String subjects = '/subjects';
+  static const String calendar = '/calendar';
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
@@ -33,6 +35,13 @@ class AppRouter {
         path: register,
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+
+      // Calendar routes
+      GoRoute(
+        path: calendar,
+        name: 'calendar',
+        builder: (context, state) => const CalendarScreen(),
       ),
 
       // Main App Routes

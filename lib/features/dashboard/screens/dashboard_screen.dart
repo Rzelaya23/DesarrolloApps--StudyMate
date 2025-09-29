@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mi_app/core/providers/theme_provider.dart';
+import 'package:mi_app/core/router/app_router.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -14,8 +15,8 @@ class DashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: Icon(
-              ref.watch(themeProvider) == ThemeMode.light 
-                  ? Icons.dark_mode 
+              ref.watch(themeProvider) == ThemeMode.light
+                  ? Icons.dark_mode
                   : Icons.light_mode,
             ),
             onPressed: () {
@@ -25,11 +26,11 @@ class DashboardScreen extends ConsumerWidget {
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'logout') {
-                context.go('/login');
+                context.go(AppRouter.login);
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
+            itemBuilder: (context) => const [
+              PopupMenuItem(
                 value: 'profile',
                 child: Row(
                   children: [
@@ -39,7 +40,7 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'settings',
                 child: Row(
                   children: [
@@ -49,8 +50,8 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuDivider(),
+              PopupMenuItem(
                 value: 'logout',
                 child: Row(
                   children: [
@@ -104,12 +105,12 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Quick stats
             Row(
-              children: [
+              children: const [
                 Expanded(
                   child: _StatCard(
                     title: 'Materias',
@@ -118,7 +119,7 @@ class DashboardScreen extends ConsumerWidget {
                     color: Colors.blue,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     title: 'Tareas',
@@ -127,7 +128,7 @@ class DashboardScreen extends ConsumerWidget {
                     color: Colors.orange,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     title: 'Puntos',
@@ -138,9 +139,9 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Quick actions
             Text(
               'Acciones Rápidas',
@@ -149,30 +150,30 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
+            // Ajuste childAspectRatio para reducir overflows en textos
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 1.2,
+              childAspectRatio: 1.05,
               children: [
                 _ActionCard(
                   title: 'Materias',
                   subtitle: 'Gestionar materias',
                   icon: Icons.school,
                   color: Theme.of(context).colorScheme.primary,
-                  onTap: () => context.go('/subjects'),
+                  onTap: () => context.go(AppRouter.subjects),
                 ),
                 _ActionCard(
                   title: 'Calendario',
                   subtitle: 'Ver eventos',
-                  icon: Icons.calendar_today,
+                  icon: Icons.calendar_month,
                   color: Colors.green,
-                  onTap: () {
-                    // TODO: Navegar a calendario
-                  },
+                  // ✅ navegar a la nueva ruta
+                  onTap: () => context.push(AppRouter.calendar),
                 ),
                 _ActionCard(
                   title: 'Asistente IA',
@@ -194,9 +195,9 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Recent activity
             Text(
               'Actividad Reciente',
@@ -205,8 +206,8 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
-            Card(
+
+            const Card(
               child: Column(
                 children: [
                   _ActivityItem(
@@ -215,14 +216,14 @@ class DashboardScreen extends ConsumerWidget {
                     subtitle: 'Hace 2 horas',
                     color: Colors.green,
                   ),
-                  const Divider(height: 1),
+                  Divider(height: 1),
                   _ActivityItem(
                     icon: Icons.book_outlined,
                     title: 'Nueva materia agregada: Física',
                     subtitle: 'Hace 1 día',
                     color: Colors.blue,
                   ),
-                  const Divider(height: 1),
+                  Divider(height: 1),
                   _ActivityItem(
                     icon: Icons.star_outline,
                     title: 'Logro desbloqueado: Estudiante Constante',
@@ -235,40 +236,30 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
       ),
+
+      // Bottom Nav conectado a GoRouter
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: 0,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school),
-            label: 'Materias',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
+          BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Materias'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendario'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
         onTap: (index) {
           switch (index) {
             case 0:
-              // Ya estamos en dashboard
+            // ya estamos en dashboard
               break;
             case 1:
-              context.go('/subjects');
+              context.go(AppRouter.subjects);
               break;
             case 2:
-              // TODO: Implementar calendario
+              context.go(AppRouter.calendar); // ✅ navega a Calendario
               break;
             case 3:
-              // TODO: Implementar perfil
+            // TODO: Implementar perfil
               break;
           }
         },
@@ -335,7 +326,9 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Card ya provee Material para InkWell (ripple)
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -352,19 +345,27 @@ class _ActionCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: color, size: 32),
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+              const SizedBox(height: 10),
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
+              Flexible(
+                child: Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
             ],
           ),
