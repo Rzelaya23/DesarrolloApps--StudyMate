@@ -1,15 +1,15 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:mi_app/core/router/app_router.dart';
-import 'package:mi_app/core/theme/app_theme.dart';
+import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('es_ES'); // carga datos de fecha para español
-  runApp(const ProviderScope(child: StudyMateApp())); // <-- usar StudyMateApp
+  await initializeDateFormatting('es_ES');
+  runApp(const ProviderScope(child: StudyMateApp()));
 }
 
 class StudyMateApp extends ConsumerWidget {
@@ -17,17 +17,17 @@ class StudyMateApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
+    final appTheme = ref.watch(themeNotifierProvider); // 👈 estado unificado
 
     return MaterialApp.router(
       title: 'StudyMate',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
       routerConfig: AppRouter.router,
 
-      // Localización para el calendario en español
+      // 👇 Un SOLO ThemeData dinámico (se actualiza y el router se repinta)
+      theme: appTheme.toThemeData(),
+
+      // Localización (tu calendario en ES)
       supportedLocales: const [
         Locale('es', 'ES'),
         Locale('en', 'US'),

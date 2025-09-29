@@ -1,7 +1,7 @@
+import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:mi_app/core/router/app_router.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -92,7 +92,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context.go('/calendar');
                 break;
               case 3:
-                // Ya estamos en perfil
+              // Ya estamos en perfil
                 break;
             }
           }
@@ -127,7 +127,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(50),
-              child: Icon(
+              child: const Icon(
                 Icons.person,
                 size: 50,
                 color: Colors.white,
@@ -135,7 +135,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Nombre
           Text(
             userName,
@@ -145,7 +145,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          
+
           // Email
           Text(
             userEmail,
@@ -154,7 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          
+
           // Carrera
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -250,6 +250,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildConfigurationSection() {
+    final isDark =
+        ref.watch(themeNotifierProvider).isDarkmode; // 👈 lee AppTheme
+
     return Card(
       key: const ValueKey('config_section_card'),
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -268,11 +271,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _buildConfigTile(
             icon: Icons.brightness_6,
             title: 'Tema',
-            subtitle: ref.watch(themeProvider) == ThemeMode.light ? 'Claro' : 'Oscuro',
+            subtitle: isDark ? 'Oscuro' : 'Claro', // ✅ nuevo flujo
             onTap: () {
-              if (mounted) {
-                ref.read(themeProvider.notifier).toggleTheme();
-              }
+              ref.read(themeNotifierProvider.notifier).toggleDarkmode(); // ✅
             },
           ),
           _buildConfigTile(
@@ -336,7 +337,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.emoji_events,
                   color: Colors.amber,
                   size: 24,
@@ -355,10 +356,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.2),
                   style: BorderStyle.solid,
                 ),
               ),
@@ -367,7 +374,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Icon(
                     Icons.workspace_premium,
                     size: 48,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -438,7 +448,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showEditProfileDialog() {
     if (!mounted) return;
-    
+
     final nameController = TextEditingController(text: userName);
     final emailController = TextEditingController(text: userEmail);
     final careerController = TextEditingController(text: userCareer);
@@ -522,7 +532,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _confirmLogout() {
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

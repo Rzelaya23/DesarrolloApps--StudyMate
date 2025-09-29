@@ -15,55 +15,13 @@ class DashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: Icon(
-              ref.watch(themeProvider) == ThemeMode.light
-                  ? Icons.dark_mode
-                  : Icons.light_mode,
+              ref.watch(themeNotifierProvider).isDarkmode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
             ),
             onPressed: () {
-              ref.read(themeProvider.notifier).toggleTheme();
+              ref.read(themeNotifierProvider.notifier).toggleDarkmode();
             },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'profile') {
-                context.go(AppRouter.profile);
-              } else if (value == 'logout') {
-                context.go(AppRouter.login);
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 8),
-                    Text('Perfil'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 8),
-                    Text('Configuración'),
-                  ],
-                ),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
