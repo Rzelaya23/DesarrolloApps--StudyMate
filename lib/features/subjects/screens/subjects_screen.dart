@@ -264,10 +264,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
   }
 
   void _showSubjectDetails(Subject subject) {
-    // TODO: Implementar pantalla de detalles de materia
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Detalles de ${subject.name}')),
-    );
+    context.go('/subjects/${subject.id}', extra: subject);
   }
 }
 

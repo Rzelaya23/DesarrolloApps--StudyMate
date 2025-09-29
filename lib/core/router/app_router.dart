@@ -5,6 +5,7 @@ import 'package:mi_app/features/auth/screens/register_screen.dart';
 import 'package:mi_app/features/auth/screens/splash_screen.dart';
 import 'package:mi_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
+import 'package:mi_app/features/subjects/screens/subject_detail_screen.dart';
 import 'package:mi_app/features/calendar/views/calendar_screen.dart';
 
 class AppRouter {
@@ -54,6 +55,20 @@ class AppRouter {
         path: subjects,
         name: 'subjects',
         builder: (context, state) => const SubjectsScreen(),
+      ),
+      GoRoute(
+        path: '/subjects/:id',
+        name: 'subject_detail',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is Subject) {
+            return SubjectDetailScreen(subject: extra);
+          }
+          return Scaffold(
+            appBar: AppBar(title: const Text('Materia')),
+            body: const Center(child: Text('Materia no encontrada')),
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
