@@ -6,6 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:mi_app/core/router/app_router.dart';
 import '../models/calendar_models.dart';
 import '../providers/calendar_providers.dart';
+import '../widgets/event_editor_sheet.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -35,17 +36,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       appBar: AppBar(
         title: const Text('Calendario'),
         centerTitle: false,
-        // ⬇️ SIEMPRE mostramos la flecha
+        // ✅ Back siempre visible: pop si hay stack; si no, ir a Dashboard
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
-              context.pop();                       // venías con push → vuelve
+              context.pop();
             } else {
-              context.go(AppRouter.dashboard);     // venías desde bottom → ir a Inicio
+              context.go(AppRouter.dashboard);
             }
           },
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Hoy',
+            icon: const Icon(Icons.today),
+            onPressed: () {
+              setState(() {
+                _focusedDay = DateTime.now();
+                _selectedDay = DateTime.now();
+              });
+            },
+          ),
+        ],
       ),
 
       // (opcional) barra inferior como en el dashboard, con Calendario seleccionado
@@ -63,7 +76,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             case 2:
               break; // ya estás en Calendario
             case 3:
-            context.go('/profile');
+            // TODO: context.go(AppRouter.profile);
               break;
           }
         },
@@ -76,12 +89,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: abrir hoja/modal para crear actividad
+        onPressed: () async {
+          await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (_) => Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: EventEditorSheet(initialDay: _selectedDay ?? _focusedDay),
+            ),
+          );
         },
         label: const Text('Nueva actividad'),
         icon: const Icon(Icons.add),
       ),
+
+
 
       body: Column(
         children: [
@@ -212,9 +240,24 @@ class _DayEventsList extends StatelessWidget {
                   ],
                 ],
               ),
-              onTap: () {
-                // TODO: ver detalle / editar
+              onTap: () async {
+                await showModalBottomSheet<bool>(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (_) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: EventEditorSheet(event: e),
+                  ),
+                );
+                // ✅ Nada más: Riverpod recalcula eventsByDay y CalendarScreen se redibuja.
               },
+
             ),
           );
         },

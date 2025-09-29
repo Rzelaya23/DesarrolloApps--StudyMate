@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/calendar_models.dart';
 
-/// Materias con colores fijos (sin usar BuildContext).
+/// ----------------------
+/// MATERIAS (igual que antes)
+/// ----------------------
 final subjectsProvider = Provider<Map<String, Subject>>((ref) {
   return const {
     'mate': Subject(id: 'mate', name: 'Matemáticas', color: Colors.blue),
@@ -11,13 +13,39 @@ final subjectsProvider = Provider<Map<String, Subject>>((ref) {
   };
 });
 
-/// Eventos de ejemplo (ajústalos a tus datos reales).
-final eventsProvider = StateProvider<List<CalendarEvent>>((ref) {
+/// ----------------------
+/// EVENTOS con Notifier (add / update / delete)
+/// ----------------------
+
+/// Notifier con operaciones CRUD
+class EventsNotifier extends StateNotifier<List<CalendarEvent>> {
+  EventsNotifier(super.state);
+
+  void add(CalendarEvent e) {
+    state = [...state, e];
+  }
+
+  void update(CalendarEvent e) {
+    state = [
+      for (final it in state) if (it.id == e.id) e else it,
+    ];
+  }
+
+  void delete(String id) {
+    state = state.where((e) => e.id != id).toList();
+  }
+}
+
+/// Reemplaza el antiguo StateProvider<List<CalendarEvent>>
+/// por un StateNotifierProvider que expone la LISTA igual,
+/// pero ahora con métodos CRUD disponibles.
+final eventsProvider =
+StateNotifierProvider<EventsNotifier, List<CalendarEvent>>((ref) {
   final now = DateTime.now();
   DateTime at(int d, int h, int m) =>
       DateTime(now.year, now.month, d, h, m);
 
-  return [
+  return EventsNotifier([
     CalendarEvent(
       id: '1',
       subjectId: 'prog',
@@ -40,13 +68,16 @@ final eventsProvider = StateProvider<List<CalendarEvent>>((ref) {
       start: at(5, 8, 0),
       end: at(5, 9, 0),
     ),
-  ];
+  ]);
 });
 
-/// Mapa (día -> eventos) para TableCalendar.
+/// ----------------------
+/// Mapa (día -> eventos) para TableCalendar (igual interfaz de antes)
+/// ----------------------
 final eventsByDayProvider = Provider<Map<DateTime, List<CalendarEvent>>>((ref) {
-  final list = ref.watch(eventsProvider);
+  final list = ref.watch(eventsProvider); // sigue devolviendo List<CalendarEvent>
   final map = <DateTime, List<CalendarEvent>>{};
+
   DateTime keyOf(DateTime d) => DateTime(d.year, d.month, d.day);
 
   for (final e in list) {
