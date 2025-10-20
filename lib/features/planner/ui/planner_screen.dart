@@ -22,6 +22,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> with SingleTicker
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
+    // <<< agregado: fuerza rebuild al cambiar de pestaña para mostrar/ocultar el FAB >>>
+    _tab.addListener(() => setState(() {}));
   }
 
   @override
@@ -37,6 +39,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> with SingleTicker
     final state = ref.watch(plannerProvider);
     final notifier = ref.read(plannerProvider.notifier);
 
+    // <<< agregado: saber si estamos en la pestaña "Horario" (índice 1) >>>
+    final bool isScheduleTab = _tab.index == 1;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Planificador'),
@@ -48,7 +53,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> with SingleTicker
               _tab.animateTo(1);
             },
             // Antes: Icon(Icons.auto_schedule)
-            icon: const Icon(Icons.schedule),   
+            icon: const Icon(Icons.schedule),
           ),
         ],
 
@@ -238,6 +243,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> with SingleTicker
           ),
         ],
       ),
+
+      // <<< agregado: FAB visible solo en la pestaña "Horario" y si hay actividades >>>
+      floatingActionButton: isScheduleTab && state.actividades.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                notifier.generar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Horario generado ✅')),
+                );
+              },
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Generar horario'),
+            )
+          : null,
     );
   }
 }
