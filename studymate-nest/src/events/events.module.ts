@@ -1,0 +1,12 @@
+// src/events/events.module.ts
+import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma.module';
+import { EventsController } from './events.controller';
+import { EventsService } from './events.service';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [EventsController],
+  providers: [EventsService],
+})
+export class EventsModule {}

@@ -26,13 +26,56 @@ enum Role {
 }
 
 model Student {
-  id          String       @id @default(uuid())
-  name        String
-  email       String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id    String @id @default(uuid())
+  name  String
+  email String @unique
+
+  // NEW - para auth y perfil
+  passwordHash String
+  refreshHash  String?
+  avatarUrl    String?
+  timezone     String? @default("America/El_Salvador")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones existentes
   submissions Submission[]
   enrollments Enrollment[]
+
+  // NEW - relaciones nuevas
+  preferences        StudentPreferences?
+  events             Event[]
+  PasswordResetToken PasswordResetToken[]
+}
+
+model StudentPreferences {
+  id        String  @id @default(uuid()) // NEW
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String  @unique
+
+  // Ajusta a tus necesidades
+  theme            String? // "light" | "dark" | etc.
+  reminderDefaults Json? // p.ej. {"minutesBefore": 30}
+  weekStartsOn     String? // "monday" | "sunday"
+  calendarView     String? // "month" | "week" | "agenda"
+}
+
+model Event {
+  id        String  @id @default(uuid()) // NEW
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime
+  location    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId, startsAt])
 }
 
 model Course {
@@ -58,15 +101,27 @@ model Enrollment {
 }
 
 model Assignment {
-  id          String       @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
   description String?
   dueDate     DateTime?
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  courseId    String
+
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+
+  // NEW - para filtros del listado
+  status   String? // "pending" | "in_progress" | "done"
+  priority Int? // 1..5
+
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   submissions Submission[]
+
+  // NEW - índices para performance en filtros
+  @@index([courseId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([priority])
 }
 
 model Submission {
@@ -77,7 +132,23 @@ model Submission {
   studentId    String
   content      String
   submittedAt  DateTime   @default(now())
+  // ➕ nuevos
+  grade        Float?
+  feedback     String?
+  updatedAt    DateTime   @updatedAt
 
   @@index([assignmentId])
   @@index([studentId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) // NEW
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([studentId, expiresAt])
 }

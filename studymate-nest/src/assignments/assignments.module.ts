@@ -1,10 +1,11 @@
+// src/assignments/assignments.module.ts
 import { Module } from '@nestjs/common';
-import { AssignmentsService } from './assignments.service';
+import { PrismaModule } from '../prisma.module';
 import { AssignmentsController } from './assignments.controller';
-import { PrismaModule } from 'src/prisma.module';
+import { AssignmentsService } from './assignments.service';
 
 @Module({
-  imports: [PrismaModule],              
+  imports: [PrismaModule],
   controllers: [AssignmentsController],
   providers: [AssignmentsService],
 })
