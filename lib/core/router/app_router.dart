@@ -8,6 +8,8 @@ import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
 import 'package:mi_app/features/subjects/screens/subject_detail_screen.dart';
 import 'package:mi_app/features/calendar/views/calendar_screen.dart';
 import 'package:mi_app/features/profile/screens/profile_screen.dart';
+import 'package:mi_app/features/ai_chat/ui/ai_chat_screen.dart'; 
+import 'package:mi_app/features/planner/ui/planner_screen.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -17,6 +19,9 @@ class AppRouter {
   static const String subjects = '/subjects';
   static const String calendar = '/calendar';
   static const String profile = '/profile';
+  static const String ai = '/ai';
+  static const String planner = '/planner';
+
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
@@ -78,6 +83,16 @@ class AppRouter {
             body: const Center(child: Text('Materia no encontrada')),
           );
         },
+      ),
+      GoRoute(
+        path: '/ai',
+        name: 'ai',
+        builder: (context, state) => const AiChatScreen(),
+      ),
+      GoRoute(
+        path: planner,
+        name: 'planner',
+        builder: (ctx, st) => const PlannerScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

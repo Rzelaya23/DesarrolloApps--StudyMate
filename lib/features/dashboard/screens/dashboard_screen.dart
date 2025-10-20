@@ -141,7 +141,7 @@ class DashboardScreen extends ConsumerWidget {
                   icon: Icons.psychology,
                   color: Colors.purple,
                   onTap: () {
-                    // TODO: Navegar a asistente IA
+                    context.push(AppRouter.ai); // ← navega a la pestaña de IA
                   },
                 ),
                 _ActionCard(
@@ -149,9 +149,7 @@ class DashboardScreen extends ConsumerWidget {
                   subtitle: 'Horarios automáticos',
                   icon: Icons.schedule,
                   color: Colors.teal,
-                  onTap: () {
-                    // TODO: Navegar a planificador
-                  },
+                  onTap: () => context.push(AppRouter.planner),
                 ),
               ],
             ),
