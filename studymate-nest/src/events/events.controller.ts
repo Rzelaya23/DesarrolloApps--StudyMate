@@ -1,6 +1,16 @@
-// src/events/events.controller.ts
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt.guard'; // 👈 usa el MISMO guard que el resto
 import { EventsService } from './events.service';
 import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
