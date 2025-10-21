@@ -1,4 +1,3 @@
-// src/assignments/assignments.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Prisma } from '@prisma/client';
@@ -11,7 +10,6 @@ import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 export class AssignmentsService {
   constructor(private prisma: PrismaService) {}
 
-  // ✅ GET /tasks?status=&due_from=&due_to=&courseId=&priority=&page=&limit=
   async list(query: QueryAssignmentsDto) {
     const where: Prisma.AssignmentWhereInput = {};
 
@@ -30,7 +28,6 @@ export class AssignmentsService {
     const skip = (page - 1) * limit;
 
     const orderBy: Prisma.AssignmentOrderByWithRelationInput = {
-      // primero por dueDate asc (las más próximas), luego por createdAt
       dueDate: 'asc',
     };
 
@@ -53,20 +50,18 @@ export class AssignmentsService {
     };
   }
 
-  // ✅ GET /tasks/:id
   async findOne(id: string) {
     const a = await this.prisma.assignment.findUnique({
       where: { id },
       include: {
-        course: true,       // opcional
-        submissions: true,  // opcional
+        course: true,       
+        submissions: true,  
       },
     });
     if (!a) throw new NotFoundException('Assignment not found');
     return a;
   }
 
-  // ✅ POST /tasks (ya lo tenías)
   async create(dto: CreateAssignmentDto) {
     return this.prisma.assignment.create({
       data: {
@@ -74,16 +69,13 @@ export class AssignmentsService {
         title: dto.title,
         description: dto.description,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-        // opcionales si tus DTOs los incluyen
         status: (dto as any).status ?? 'pending',
         priority: (dto as any).priority ?? null,
       },
     });
   }
 
-  // ✅ PATCH /tasks/:id
   async update(id: string, dto: UpdateAssignmentDto) {
-    // normalizamos fechas si vienen como string
     const data: Prisma.AssignmentUpdateInput = { ...dto } as any;
     if ((dto as any).dueDate) {
       (data as any).dueDate = new Date((dto as any).dueDate);
@@ -99,7 +91,6 @@ export class AssignmentsService {
     }
   }
 
-  // ✅ DELETE /tasks/:id
   async remove(id: string) {
     try {
       return await this.prisma.assignment.delete({ where: { id } });
@@ -108,7 +99,6 @@ export class AssignmentsService {
     }
   }
 
-  // ✅ POST /tasks/:id/submissions (ya lo tenías)
   async submit(id: string, dto: SubmitDto) {
     const a = await this.prisma.assignment.findUnique({ where: { id } });
     if (!a) throw new NotFoundException('Assignment not found');
@@ -118,7 +108,6 @@ export class AssignmentsService {
     });
   }
 
-  // ✅ GET /tasks/:id/submissions (ya lo tenías)
   submissions(id: string) {
     return this.prisma.submission.findMany({
       where: { assignmentId: id },
@@ -126,8 +115,6 @@ export class AssignmentsService {
     });
   }
 
-  // (Opcional) 🧰 Bulk operations:
-  // PATCH /tasks/bulk/complete → marcar varias como done
   async bulkComplete(ids: string[]) {
     await this.prisma.assignment.updateMany({
       where: { id: { in: ids } },
@@ -136,7 +123,6 @@ export class AssignmentsService {
     return { success: true, updated: ids.length };
   }
 
-  // DELETE /tasks/bulk → borrar varias
   async bulkDelete(ids: string[]) {
     await this.prisma.assignment.deleteMany({ where: { id: { in: ids } } });
     return { success: true, deleted: ids.length };

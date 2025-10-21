@@ -1,4 +1,3 @@
-// src/auth/auth.controller.ts
 import { Body, Controller, Get, Post, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -27,7 +26,6 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
-  // 👇 FIX: pasar el userId (sub) a AuthService.me
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req: any) {

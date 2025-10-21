@@ -1,4 +1,3 @@
-// src/auth/auth.service.ts
 import {
   BadRequestException,
   ConflictException,
@@ -12,7 +11,6 @@ import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 
-// helper para sumar horas sin traer date-fns
 function addHours(date: Date, hours: number) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
@@ -21,16 +19,13 @@ function addHours(date: Date, hours: number) {
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  // ===== Helpers de tokens =====
   private signAccess(payload: any) {
     const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'dev_access';
-    // Acceso corto (recomendado 15m–30m)
     return jwt.sign(payload, secret, { expiresIn: '15m' });
   }
 
   private signRefresh(payload: any) {
     const secret = process.env.JWT_REFRESH_SECRET || 'dev_refresh';
-    // Refresh más largo (7d típico)
     return jwt.sign(payload, secret, { expiresIn: '7d' });
   }
 
@@ -43,7 +38,6 @@ export class AuthService {
     }
   }
 
-  // ===== Registro / Login (Student) =====
   async register(dto: RegisterDto) {
     const exists = await this.prisma.student.findUnique({ where: { email: dto.email } });
     if (exists) throw new ConflictException('Email already registered');
@@ -58,7 +52,6 @@ export class AuthService {
       },
     });
 
-    // Emitimos tokens desde ya (opcional)
     const payload = { sub: s.id, email: s.email, role: 'STUDENT' };
     const accessToken = this.signAccess(payload);
     const refreshToken = this.signRefresh(payload);
@@ -99,7 +92,6 @@ export class AuthService {
     };
   }
 
-  // ===== Refresh / Logout =====
   async refresh(refreshToken: string) {
     const decoded = this.verifyRefresh(refreshToken) as { sub: string; email: string };
     const student = await this.prisma.student.findUnique({ where: { id: decoded.sub } });
@@ -112,7 +104,6 @@ export class AuthService {
     const accessToken = this.signAccess(payload);
     const newRefresh = this.signRefresh(payload);
 
-    // Rotación de refresh
     const newHash = bcrypt.hashSync(newRefresh, 10);
     await this.prisma.student.update({
       where: { id: student.id },
@@ -130,7 +121,6 @@ export class AuthService {
     return { success: true };
   }
 
-  // ===== Perfil (me) =====
   async me(userJwtPayload: any) {
     const s = await this.prisma.student.findUnique({
       where: { id: userJwtPayload.sub },
@@ -141,10 +131,8 @@ export class AuthService {
     return safe;
   }
 
-  // ===== Password: forgot / reset =====
   async forgotPassword(email: string) {
     const s = await this.prisma.student.findUnique({ where: { email } });
-    // No revelar existencia
     if (!s) return { ok: true };
 
     const rawToken = crypto.randomBytes(24).toString('hex');
@@ -160,13 +148,10 @@ export class AuthService {
       },
     });
 
-    // En producción, envías por email el rawToken.
-    // Para desarrollo, puedes devolverlo para pruebas:
     return { ok: true, token: rawToken };
   }
 
   async resetPassword(token: string, newPassword: string) {
-    // Tomamos el último token vigente sin usar del alumno que lo pidió
     const last = await this.prisma.passwordResetToken.findFirst({
       where: { usedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
@@ -181,7 +166,7 @@ export class AuthService {
     await this.prisma.$transaction([
       this.prisma.student.update({
         where: { id: last.studentId },
-        data: { passwordHash, refreshHash: null }, // invalida sesiones
+        data: { passwordHash, refreshHash: null }, 
       }),
       this.prisma.passwordResetToken.update({
         where: { id: last.id },

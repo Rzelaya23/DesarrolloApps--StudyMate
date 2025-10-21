@@ -1,4 +1,3 @@
-// jest.config.ts
 import type { Config } from 'jest';
 
 const config: Config = {
@@ -12,10 +11,8 @@ const config: Config = {
   coverageDirectory: 'coverage',
   testEnvironment: 'node',
 
-  // ✅ Asegura que Jest entienda los tipos globales (describe, it, expect)
   setupFilesAfterEnv: [],
 
-  // ✅ Habilita paths de TS si usas alias en tsconfig
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
   },

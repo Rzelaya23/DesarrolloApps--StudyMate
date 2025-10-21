@@ -10,7 +10,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt.guard'; // 👈 usa el MISMO guard que el resto
+import { JwtAuthGuard } from '../auth/jwt.guard'; 
 import { EventsService } from './events.service';
 import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';

@@ -1,4 +1,3 @@
-// src/submissions/submissions.module.ts
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma.module';
 import { SubmissionsController } from './submissions.controller';
