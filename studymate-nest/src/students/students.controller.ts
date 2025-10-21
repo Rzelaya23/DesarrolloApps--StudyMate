@@ -40,7 +40,7 @@ export class StudentsController {
     return this.service.getPreferences(id);
   }
 
-\  @Patch(':id/preferences')
+  @Patch(':id/preferences')
   updatePrefs(@Param('id') id: string, @Body() dto: UpdatePreferencesDto) {
     return this.service.updatePreferences(id, dto);
   }
