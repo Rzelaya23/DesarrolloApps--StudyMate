@@ -1,5 +1,11 @@
 import { IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
 export class RefreshTokenDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'Token de actualización (refresh token) emitido durante el inicio de sesión.',
+  })
   @IsString()
   refreshToken!: string;
 }

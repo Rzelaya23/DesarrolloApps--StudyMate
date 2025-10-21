@@ -1,6 +1,19 @@
-// src/submissions/dto/grade-submission.dto.ts
 import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 export class GradeSubmissionDto {
-  @IsNumber() grade!: number;
-  @IsOptional() @IsString() feedback?: string;
+  @ApiProperty({
+    example: 9.5,
+    description: 'Calificación numérica otorgada a la entrega.',
+  })
+  @IsNumber()
+  grade!: number;
+
+  @ApiPropertyOptional({
+    example: 'Excelente trabajo. La argumentación es sólida y bien fundamentada.',
+    description: 'Comentarios o retroalimentación adicional para el estudiante (opcional).',
+  })
+  @IsOptional()
+  @IsString()
+  feedback?: string;
 }
