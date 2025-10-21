@@ -42,7 +42,6 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     const ok = await bcrypt.compare(refreshToken, user.refreshHash);
     if (!ok) throw new UnauthorizedException('Invalid refresh token');
 
-    // Shape consistente con la estrategia de access
     return {
       userId: payload.sub,
       email: payload.email,

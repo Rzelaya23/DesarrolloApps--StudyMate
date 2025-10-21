@@ -1,4 +1,3 @@
-// src/courses/courses.service.ts
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Prisma } from '@prisma/client';
@@ -29,7 +28,6 @@ export class CoursesService {
 
   async create(dto: CreateCourseDto) {
     try {
-      // code requerido → no puede ser undefined
       return await this.prisma.course.create({
         data: {
           title: dto.title,

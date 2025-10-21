@@ -1,11 +1,10 @@
-// src/courses/dto/create-course.dto.ts
 import { IsString, IsOptional } from 'class-validator';
 
 export class CreateCourseDto {
   @IsString()
   title!: string;
 
-  @IsString()           // ← OBLIGATORIO para alinear con schema
+  @IsString()           
   code!: string;
 
   @IsOptional()

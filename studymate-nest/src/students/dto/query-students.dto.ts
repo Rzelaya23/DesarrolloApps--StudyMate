@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 export class QueryStudentsDto {
   @IsOptional()
   @IsString()
-  search?: string; // name/email
+  search?: string; 
 
   @IsOptional()
   @Type(() => Number)

@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import { AuthModule } from '../auth/auth.module';
-import { PrismaService } from '../prisma.service'; // usamos el mismo PrismaService del proyecto
+import { PrismaService } from '../prisma.service'; 
 
 @Module({
-  imports: [AuthModule],                 // 👈 trae la estrategia/guard ya registrados
+  imports: [AuthModule],                 
   controllers: [EventsController],
-  providers: [EventsService, PrismaService], // 👈 inyecta Prisma sin depender de un PrismaModule
+  providers: [EventsService, PrismaService], 
 })
 export class EventsModule {}
