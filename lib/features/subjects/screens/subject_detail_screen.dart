@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
+
+import '../models/subject.dart';
 
 class SubjectDetailScreen extends StatefulWidget {
   final Subject subject;
-  const SubjectDetailScreen({super.key, required this.subject});
+
+  const SubjectDetailScreen({
+    super.key,
+    required this.subject,
+  });
 
   @override
   State<SubjectDetailScreen> createState() => _SubjectDetailScreenState();
 }
 
 class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
-  // Estado local
   final _descriptionController = TextEditingController();
-  final Set<int> _selectedDays = {}; // 1..7 -> Lun..Dom
+  final Set<int> _selectedDays = {}; // 1..7 → Lun..Dom
   final List<Unit> _units = [];
 
   @override
@@ -39,19 +43,12 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Encabezado con info rápida
             _HeaderCard(subject: widget.subject),
             const SizedBox(height: 16),
-
-            // Botón para asignar días de clase
             _buildClassDaysCard(color),
             const SizedBox(height: 16),
-
-            // Descripción general
             _buildDescriptionCard(color),
             const SizedBox(height: 16),
-
-            // Unidades
             _buildUnitsSection(color),
           ],
         ),
@@ -59,8 +56,12 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // DÍAS DE CLASE
+  // ---------------------------------------------------------------------------
+
   Widget _buildClassDaysCard(Color color) {
-    final dayNames = const ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    final dayShortNames = const ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
     return Card(
       child: Padding(
@@ -74,27 +75,33 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Días de clase',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: _openDaysPicker,
                   icon: const Icon(Icons.edit_calendar),
                   label: const Text('Asignar días'),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 8),
             if (_selectedDays.isEmpty)
               Text(
                 'Aún no has asignado días de clase',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.grey[600]),
               )
             else
               Wrap(
                 spacing: 8,
                 children: (_selectedDays.toList()..sort())
-                    .map((d) => Chip(label: Text(dayNames[d - 1])))
+                    .map((d) => Chip(label: Text(dayShortNames[d - 1])))
                     .toList(),
               ),
           ],
@@ -104,7 +111,15 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 
   void _openDaysPicker() {
-    final dayNames = const ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    final dayNames = const [
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo',
+    ];
     final tempSelected = {..._selectedDays};
 
     showModalBottomSheet(
@@ -131,12 +146,15 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     children: [
                       const Icon(Icons.edit_calendar),
                       const SizedBox(width: 8),
-                      Text('Selecciona los días', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Selecciona los días',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const Spacer(),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.close),
-                      )
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -166,15 +184,17 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        setState(() => _selectedDays
-                          ..clear()
-                          ..addAll(tempSelected));
+                        setState(() {
+                          _selectedDays
+                            ..clear()
+                            ..addAll(tempSelected);
+                        });
                         Navigator.pop(context);
                       },
                       icon: const Icon(Icons.save),
                       label: const Text('Guardar días'),
                     ),
-                  )
+                  ),
                 ],
               ),
             );
@@ -183,6 +203,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       },
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // DESCRIPCIÓN
+  // ---------------------------------------------------------------------------
 
   Widget _buildDescriptionCard(Color color) {
     return Card(
@@ -197,7 +221,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Descripción general',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -207,7 +234,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               maxLines: null,
               minLines: 3,
               decoration: const InputDecoration(
-                hintText: 'Describe los objetivos, contenidos y forma de evaluación de la materia...',
+                hintText:
+                    'Describe los objetivos, contenidos y forma de evaluación de la materia...',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -230,6 +258,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // UNIDADES
+  // ---------------------------------------------------------------------------
+
   Widget _buildUnitsSection(Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +270,13 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
           children: [
             Icon(Icons.view_module_outlined, color: color),
             const SizedBox(width: 8),
-            Text('Unidades', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Unidades',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const Spacer(),
             ElevatedButton.icon(
               onPressed: _addUnitDialog,
@@ -269,12 +307,14 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         else
           Column(
             children: _units
-                .map((u) => _UnitCard(
-                      unit: u,
-                      onAddTopic: () => _addTopicDialog(u),
-                      onAddFile: () => _showUploadDesign(u),
-                      onDelete: () => setState(() => _units.remove(u)),
-                    ))
+                .map(
+                  (u) => _UnitCard(
+                    unit: u,
+                    onAddTopic: () => _addTopicDialog(u),
+                    onAddFile: () => _showUploadDesign(u),
+                    onDelete: () => setState(() => _units.remove(u)),
+                  ),
+                )
                 .toList(),
           ),
       ],
@@ -303,7 +343,14 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             onPressed: () {
               if (controller.text.trim().isEmpty) return;
               setState(() {
-                _units.add(Unit(id: DateTime.now().millisecondsSinceEpoch.toString(), title: controller.text.trim()));
+                _units.add(
+                  Unit(
+                    id: DateTime.now()
+                        .millisecondsSinceEpoch
+                        .toString(),
+                    title: controller.text.trim(),
+                  ),
+                );
               });
               Navigator.pop(context);
             },
@@ -348,7 +395,6 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 
   void _showUploadDesign(Unit unit) {
-    // Solo diseño: mostramos bottom sheet con opciones simuladas
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -364,12 +410,15 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               children: [
                 const Icon(Icons.upload_file),
                 const SizedBox(width: 8),
-                Text('Subir archivo a "${unit.title}"', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Subir archivo a "${unit.title}"',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -380,18 +429,27 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Diseño de subida de archivos (PDF/TXT) — por implementar')),
+                  const SnackBar(
+                    content: Text(
+                      'Diseño de subida de archivos (PDF/TXT) — por implementar',
+                    ),
+                  ),
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.description, color: Colors.blueGrey),
+              leading:
+                  const Icon(Icons.description, color: Colors.blueGrey),
               title: const Text('Archivo de texto'),
               subtitle: const Text('Seleccionar desde el dispositivo'),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Diseño de subida de archivos (PDF/TXT) — por implementar')),
+                  const SnackBar(
+                    content: Text(
+                      'Diseño de subida de archivos (PDF/TXT) — por implementar',
+                    ),
+                  ),
                 );
               },
             ),
@@ -403,12 +461,24 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// HEADER CARD
+// ---------------------------------------------------------------------------
+
 class _HeaderCard extends StatelessWidget {
   final Subject subject;
-  const _HeaderCard({required this.subject});
+
+  const _HeaderCard({
+    required this.subject,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final teacherText =
+        subject.teacher?.trim().isEmpty ?? true
+            ? 'Docente no asignado'
+            : subject.teacher!.trim();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -433,13 +503,20 @@ class _HeaderCard extends StatelessWidget {
                     children: [
                       Text(
                         subject.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           const Icon(Icons.person, size: 16),
                           const SizedBox(width: 4),
-                          Text(subject.teacher, style: Theme.of(context).textTheme.bodySmall),
+                          Text(
+                            teacherText,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         ],
                       ),
                     ],
@@ -451,8 +528,17 @@ class _HeaderCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Progreso', style: Theme.of(context).textTheme.bodySmall),
-                Text('${(subject.progress * 100).toInt()}%', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Progreso',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(
+                  '${(subject.progress * 100).toInt()}%',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -467,6 +553,10 @@ class _HeaderCard extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// MODELOS LOCALES
+// ---------------------------------------------------------------------------
 
 class Unit {
   final String id;
@@ -488,13 +578,21 @@ class Attachment {
   final String name;
   final String type; // 'pdf' | 'txt'
 
-  Attachment({required this.id, required this.name, required this.type});
+  Attachment({
+    required this.id,
+    required this.name,
+    required this.type,
+  });
 }
+
+// ---------------------------------------------------------------------------
+// CARD DE UNIDAD
+// ---------------------------------------------------------------------------
 
 class _UnitCard extends StatelessWidget {
   final Unit unit;
   final VoidCallback onAddTopic;
-  final VoidCallback onAddFile; // Diseño solamente
+  final VoidCallback onAddFile;
   final VoidCallback onDelete;
 
   const _UnitCard({
@@ -518,7 +616,10 @@ class _UnitCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     unit.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
                 PopupMenuButton<String>(
@@ -526,22 +627,34 @@ class _UnitCard extends StatelessWidget {
                     if (v == 'delete') onDelete();
                   },
                   itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar unidad')),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar unidad'),
+                    ),
                   ],
-                )
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            // Temas
-            Text('Temas', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              'Temas',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             if (unit.topics.isEmpty)
-              Text('Aún no hay temas agregados', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]))
+              Text(
+                'Aún no hay temas agregados',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.grey[600]),
+              )
             else
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: unit.topics.map((t) => Chip(label: Text(t))).toList(),
+                children:
+                    unit.topics.map((t) => Chip(label: Text(t))).toList(),
               ),
             const SizedBox(height: 8),
             Align(
@@ -553,23 +666,37 @@ class _UnitCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            // Archivos
-            Text('Materiales (PDF/TXT)', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              'Materiales (PDF/TXT)',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             if (unit.files.isEmpty)
-              Text('Aún no hay archivos cargados', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]))
+              Text(
+                'Aún no hay archivos cargados',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.grey[600]),
+              )
             else
               Column(
                 children: unit.files
-                    .map((f) => ListTile(
-                          leading: Icon(
-                            f.type == 'pdf' ? Icons.picture_as_pdf : Icons.description,
-                            color: f.type == 'pdf' ? Colors.red : Colors.blueGrey,
-                          ),
-                          title: Text(f.name),
-                          subtitle: Text(f.type.toUpperCase()),
-                          trailing: const Icon(Icons.more_vert),
-                        ))
+                    .map(
+                      (f) => ListTile(
+                        leading: Icon(
+                          f.type == 'pdf'
+                              ? Icons.picture_as_pdf
+                              : Icons.description,
+                          color: f.type == 'pdf'
+                              ? Colors.red
+                              : Colors.blueGrey,
+                        ),
+                        title: Text(f.name),
+                        subtitle: Text(f.type.toUpperCase()),
+                        trailing: const Icon(Icons.more_vert),
+                      ),
+                    )
                     .toList(),
               ),
             const SizedBox(height: 8),

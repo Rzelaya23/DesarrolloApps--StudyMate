@@ -1,16 +1,30 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  // UseGuards,
+} from '@nestjs/common';
+// import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
-@Controller('api/courses') 
-@UseGuards(JwtAuthGuard)
+@Controller('courses') // <- ya corregimos el 'api/courses' antes
+// @UseGuards(JwtAuthGuard)   // <- COMENTADO POR AHORA
 export class CoursesController {
   constructor(private readonly service: CoursesService) {}
 
   @Get()
-  list(@Query('search') search?: string, @Query('page') page = '1', @Query('limit') limit = '10') {
+  list(
+    @Query('search') search?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
     return this.service.list({
       search,
       page: parseInt(page, 10) || 1,

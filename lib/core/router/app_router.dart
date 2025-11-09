@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:mi_app/features/auth/screens/login_screen.dart';
 import 'package:mi_app/features/auth/screens/register_screen.dart';
 import 'package:mi_app/features/auth/screens/splash_screen.dart';
@@ -8,8 +9,11 @@ import 'package:mi_app/features/subjects/screens/subjects_screen.dart';
 import 'package:mi_app/features/subjects/screens/subject_detail_screen.dart';
 import 'package:mi_app/features/calendar/views/calendar_screen.dart';
 import 'package:mi_app/features/profile/screens/profile_screen.dart';
-import 'package:mi_app/features/ai_chat/ui/ai_chat_screen.dart'; 
+import 'package:mi_app/features/ai_chat/ui/ai_chat_screen.dart';
 import 'package:mi_app/features/planner/ui/planner_screen.dart';
+
+// 👇 IMPORTA EL MODELO Subject
+import 'package:mi_app/features/subjects/models/subject.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -21,7 +25,6 @@ class AppRouter {
   static const String profile = '/profile';
   static const String ai = '/ai';
   static const String planner = '/planner';
-
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
@@ -70,12 +73,15 @@ class AppRouter {
         name: 'subjects',
         builder: (context, state) => const SubjectsScreen(),
       ),
+
+      // Detalle de materia
       GoRoute(
         path: '/subjects/:id',
         name: 'subject_detail',
         builder: (context, state) {
           final extra = state.extra;
           if (extra is Subject) {
+            // 👆 ahora Subject existe y el type check es válido
             return SubjectDetailScreen(subject: extra);
           }
           return Scaffold(
@@ -84,11 +90,15 @@ class AppRouter {
           );
         },
       ),
+
+      // AI Chat
       GoRoute(
         path: '/ai',
         name: 'ai',
         builder: (context, state) => const AiChatScreen(),
       ),
+
+      // Planner
       GoRoute(
         path: planner,
         name: 'planner',

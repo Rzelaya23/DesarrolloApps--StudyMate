@@ -11,7 +11,7 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "es2021",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "strict": true,
     "sourceMap": true,
     "outDir": "./dist",
