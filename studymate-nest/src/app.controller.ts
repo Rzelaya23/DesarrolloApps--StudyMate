@@ -1,13 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 
-@Controller('api')
+@Controller()
 export class AppController {
+  @Get()
+  getHello(): string {
+    return '🚀 StudyMate API funcionando correctamente';
+  }
+
   @Get('health')
-  health() {
-    return {
-      ok: true,
-      service: 'StudyMate Nest API',
-      time: new Date().toISOString(),
-    };
+  getHealth(): Record<string, string> {
+    return { status: 'ok', message: 'Servidor NestJS en línea' };
   }
 }

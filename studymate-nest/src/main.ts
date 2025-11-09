@@ -3,20 +3,19 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-
-// 👇 Agregados para Swagger
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Validación & CORS (tal como ya lo tenías)
+  // Validación & CORS
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableCors();
 
-  // ---------- Swagger Bootstrapping ----------
-  // Puedes condicionar por entorno si quieres:
-  // if (process.env.NODE_ENV !== 'production') { ... }
+  // Prefijo global para rutas HTTP (quítalo si no lo usas)
+  app.setGlobalPrefix('api');
+
+  // --- Swagger ---
   const config = new DocumentBuilder()
     .setTitle('StudyMate API')
     .setDescription('Documentación de la API de StudyMate')
@@ -26,20 +25,20 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Ingrese su JWT en el campo "Authorize".',
+        description: 'Pegue aquí su token JWT para probar endpoints protegidos.',
       },
-      'jwt', // nombre del esquema (opcional, pero útil)
+      'jwt',
     )
-    .addTag('health') // ejemplo, cambia/añade los tags que uses
+    // Alinea Swagger con y sin prefijo (útil en dev o si cambias despliegue)
+    .addServer('/api')
+    .addServer('/')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true, // mantiene el token entre recargas
-    },
+    swaggerOptions: { persistAuthorization: true },
   });
-  // ---------- Fin Swagger ----------
+  // --- Fin Swagger ---
 
   await app.listen(Number(process.env.PORT ?? 4000));
 }

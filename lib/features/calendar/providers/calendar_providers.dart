@@ -1,88 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/calendar_models.dart';
 
-/// ----------------------
-/// MATERIAS (igual que antes)
-/// ----------------------
+import 'package:mi_app/core/auth/auth_token_provider.dart';
+import 'package:mi_app/features/calendar/data/event_service.dart';
+import 'package:mi_app/features/calendar/models/calendar_models.dart';
+
+/// =============================================================
+/// SUBJECTS (Materias) – dummy para la UI
+/// =============================================================
 final subjectsProvider = Provider<Map<String, Subject>>((ref) {
-  return const {
-    'mate': Subject(id: 'mate', name: 'Matemáticas', color: Colors.blue),
-    'prog': Subject(id: 'prog', name: 'Programación', color: Colors.green),
-    'hist': Subject(id: 'hist', name: 'Historia', color: Colors.red),
+  return {
+    'math': const Subject(
+      id: 'math',
+      name: 'Matemáticas',
+      color: Colors.blue,
+    ),
+    'physics': const Subject(
+      id: 'physics',
+      name: 'Física',
+      color: Colors.red,
+    ),
+    'history': const Subject(
+      id: 'history',
+      name: 'Historia',
+      color: Colors.green,
+    ),
   };
 });
 
-/// ----------------------
-/// EVENTOS con Notifier (add / update / delete)
-/// ----------------------
+/// =============================================================
+/// Servicio de eventos
+/// =============================================================
+final eventServiceProvider = Provider<EventService>((ref) {
+  return const EventService();
+});
 
-/// Notifier con operaciones CRUD
+/// Si en alguna pantalla quieres consumir directamente el Future:
+final eventsFromBackendProvider =
+    FutureProvider.autoDispose<List<CalendarEvent>>((ref) async {
+  final token = ref.watch(authTokenProvider);
+
+  if (token == null || token.isEmpty) {
+    throw Exception('Usuario no autenticado');
+  }
+
+  final service = ref.read(eventServiceProvider);
+  return service.getEvents(token);
+});
+
+/// =============================================================
+/// STATE NOTIFIER: maneja lista de eventos + llamadas al backend
+/// =============================================================
 class EventsNotifier extends StateNotifier<List<CalendarEvent>> {
-  EventsNotifier(super.state);
-
-  void add(CalendarEvent e) {
-    state = [...state, e];
+  EventsNotifier(this._ref) : super(const []) {
+    _loadFromBackend();
   }
 
-  void update(CalendarEvent e) {
-    state = [
-      for (final it in state) if (it.id == e.id) e else it,
-    ];
+  final Ref _ref;
+
+  EventService get _service => _ref.read(eventServiceProvider);
+
+  String? get _token => _ref.read(authTokenProvider);
+
+  Future<void> _loadFromBackend() async {
+    final token = _token;
+    if (token == null || token.isEmpty) return;
+
+    try {
+      final events = await _service.getEvents(token);
+      state = List.unmodifiable(events);
+    } catch (e) {
+      // En prod podrías loguear el error
+    }
   }
 
-  void delete(String id) {
-    state = state.where((e) => e.id != id).toList();
+  Future<void> refresh() => _loadFromBackend();
+
+  /// Crear evento: golpea backend y actualiza el estado
+  Future<CalendarEvent> createEvent(CalendarEvent draft) async {
+    final token = _token;
+    if (token == null || token.isEmpty) {
+      throw Exception('Usuario no autenticado');
+    }
+
+    final created = await _service.createEvent(token, draft);
+    state = List.unmodifiable([...state, created]);
+    return created;
+  }
+
+  /// Actualizar evento existente
+  Future<CalendarEvent> updateEvent(CalendarEvent draft) async {
+    final token = _token;
+    if (token == null || token.isEmpty) {
+      throw Exception('Usuario no autenticado');
+    }
+
+    final updated = await _service.updateEvent(token, draft);
+    state = List.unmodifiable([
+      for (final e in state) if (e.id == updated.id) updated else e,
+    ]);
+    return updated;
+  }
+
+  /// Eliminar evento
+  Future<void> deleteEvent(String id) async {
+    final token = _token;
+    if (token == null || token.isEmpty) {
+      throw Exception('Usuario no autenticado');
+    }
+
+    await _service.deleteEvent(token, id);
+    state = List.unmodifiable(
+      state.where((e) => e.id != id).toList(),
+    );
   }
 }
 
-/// Reemplaza el antiguo StateProvider<List<CalendarEvent>>
-/// por un StateNotifierProvider que expone la LISTA igual,
-/// pero ahora con métodos CRUD disponibles.
+/// Provider que usa la UI (EventEditorSheet, calendar view, etc.)
 final eventsProvider =
-StateNotifierProvider<EventsNotifier, List<CalendarEvent>>((ref) {
-  final now = DateTime.now();
-  DateTime at(int d, int h, int m) =>
-      DateTime(now.year, now.month, d, h, m);
-
-  return EventsNotifier([
-    CalendarEvent(
-      id: '1',
-      subjectId: 'prog',
-      title: 'Entrega Proyecto UI',
-      start: at(2, 9, 0),
-      end: at(2, 10, 30),
-      notes: 'Subir a GitHub Classroom',
-    ),
-    CalendarEvent(
-      id: '2',
-      subjectId: 'mate',
-      title: 'Quiz Derivadas',
-      start: at(2, 13, 0),
-      end: at(2, 13, 30),
-    ),
-    CalendarEvent(
-      id: '3',
-      subjectId: 'hist',
-      title: 'Lectura Cap. 5',
-      start: at(5, 8, 0),
-      end: at(5, 9, 0),
-    ),
-  ]);
-});
-
-/// ----------------------
-/// Mapa (día -> eventos) para TableCalendar (igual interfaz de antes)
-/// ----------------------
-final eventsByDayProvider = Provider<Map<DateTime, List<CalendarEvent>>>((ref) {
-  final list = ref.watch(eventsProvider); // sigue devolviendo List<CalendarEvent>
-  final map = <DateTime, List<CalendarEvent>>{};
-
-  DateTime keyOf(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  for (final e in list) {
-    final k = keyOf(e.start);
-    (map[k] ??= <CalendarEvent>[]).add(e);
-  }
-  return map;
-});
+    StateNotifierProvider<EventsNotifier, List<CalendarEvent>>(
+  (ref) => EventsNotifier(ref),
+);

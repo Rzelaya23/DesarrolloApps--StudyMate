@@ -17,17 +17,14 @@ class StudyMateApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appTheme = ref.watch(themeNotifierProvider); // 👈 estado unificado
+    final appTheme = ref.watch(themeNotifierProvider);
 
     return MaterialApp.router(
       title: 'StudyMate',
       debugShowCheckedModeBanner: false,
-      routerConfig: AppRouter.router,
-
-      // 👇 Un SOLO ThemeData dinámico (se actualiza y el router se repinta)
       theme: appTheme.toThemeData(),
+      routerConfig: AppRouter.router,   // 👈 volvemos a tu router normal
 
-      // Localización (tu calendario en ES)
       supportedLocales: const [
         Locale('es', 'ES'),
         Locale('en', 'US'),

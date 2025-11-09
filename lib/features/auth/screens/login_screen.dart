@@ -1,14 +1,18 @@
+// lib/features/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mi_app/features/auth/data/auth_service.dart';
+import 'package:mi_app/core/auth/auth_token_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -32,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 60),
-              
+
               // Logo y título
               Column(
                 children: [
@@ -63,15 +67,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 48),
-              
+
               // Formulario
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Email field
+                    // Email
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -84,16 +88,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Por favor ingresa tu correo';
                         }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
                           return 'Ingresa un correo válido';
                         }
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
-                    // Password field
+
+                    // Password
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
@@ -103,8 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: const Icon(Icons.lock_outlined),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword 
-                                ? Icons.visibility_outlined 
+                            _obscurePassword
+                                ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
                           ),
                           onPressed: () {
@@ -124,9 +129,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Forgot password
                     Align(
                       alignment: Alignment.centerRight,
@@ -142,10 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
-                    // Login button
+
+                    // Botón login
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -157,15 +162,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Text('Iniciar Sesión'),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Divider
                     const Row(
                       children: [
@@ -177,10 +184,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(child: Divider()),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
-                    // Google sign in button
+
+                    // Google sign in
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -200,9 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Register link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -230,23 +237,44 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin() async {
+  Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
     });
 
-    // Simular login
-    await Future.delayed(const Duration(seconds: 2));
+    final authService = AuthService();
 
-    if (mounted) {
+    try {
+      final result = await authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      // Guardar token en Riverpod
+      ref.read(authTokenProvider.notifier).state = result.accessToken;
+
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
       });
-      
-      // Navegar al dashboard
+
+      // Navegar al dashboard ya autenticado
       context.go('/dashboard');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo iniciar sesión: $e'),
+        ),
+      );
     }
   }
 }

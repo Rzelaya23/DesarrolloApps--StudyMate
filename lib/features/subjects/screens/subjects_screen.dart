@@ -1,272 +1,268 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class SubjectsScreen extends StatefulWidget {
+import '../models/subject.dart';
+import '../providers/subjects_providers.dart';
+
+class SubjectsScreen extends ConsumerStatefulWidget {
   const SubjectsScreen({super.key});
 
   @override
-  State<SubjectsScreen> createState() => _SubjectsScreenState();
+  ConsumerState<SubjectsScreen> createState() => _SubjectsScreenState();
 }
 
-class _SubjectsScreenState extends State<SubjectsScreen> {
-  final List<Subject> _subjects = [
-    Subject(
-      id: '1',
-      name: 'Matemáticas',
-      color: Colors.blue,
-      teacher: 'Prof. García',
-      schedule: 'Lun, Mié, Vie - 8:00 AM',
-      progress: 0.75,
-    ),
-    Subject(
-      id: '2',
-      name: 'Física',
-      color: Colors.green,
-      teacher: 'Prof. López',
-      schedule: 'Mar, Jue - 10:00 AM',
-      progress: 0.60,
-    ),
-    Subject(
-      id: '3',
-      name: 'Química',
-      color: Colors.orange,
-      teacher: 'Prof. Martínez',
-      schedule: 'Lun, Mié - 2:00 PM',
-      progress: 0.45,
-    ),
-  ];
+class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
+  String _searchQuery = '';
+  bool _reloading = false;
 
   @override
   Widget build(BuildContext context) {
+    final subjectsMap = ref.watch(subjectsProvider);
+    final subjects = subjectsMap.values.toList();
+    final filtered = _applyFilter(subjects);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis Materias'),
+        title: const Text('Materias'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/dashboard'),
         ),
-      ),
-      body: _subjects.isEmpty ? _buildEmptyState() : _buildSubjectsList(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSubjectDialog(),
-        child: const Icon(Icons.add),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 1,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school),
-            label: 'Materias',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
+        actions: [
+          IconButton(
+            tooltip: 'Recargar',
+            icon: _reloading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            onPressed: _reloading
+                ? null
+                : () async {
+                    setState(() => _reloading = true);
+                    try {
+                      await ref.read(subjectsProvider.notifier).loadSubjects();
+                    } finally {
+                      if (mounted) setState(() => _reloading = false);
+                    }
+                  },
           ),
         ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.go('/dashboard');
-              break;
-            case 1:
-              // Ya estamos en materias
-              break;
-            case 2:
-              // TODO: Implementar calendario
-              break;
-            case 3:
-              context.go('/profile');
-              break;
+      ),
+
+      // 🔹 ÚNICO botón para crear materia
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showSubjectDialog(),
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva materia'),
+      ),
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            _buildStatsHeader(subjects),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildSearchField(),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: filtered.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final s = filtered[index];
+                        return _SubjectCard(
+                          subject: s,
+                          onTap: () {
+                            context.goNamed(
+                              'subject_detail',
+                              pathParameters: {'id': s.id},
+                              extra: s,
+                            );
+                          },
+                          onEdit: () => _showSubjectDialog(existing: s),
+                          onDelete: () => _confirmDeleteSubject(s),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // FILTRO Y BUSCADOR
+  // ---------------------------------------------------------------------------
+
+  List<Subject> _applyFilter(List<Subject> subjects) {
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return subjects;
+
+    return subjects.where((s) {
+      final teacher = (s.teacher ?? '').toLowerCase();
+      final schedule = (s.schedule ?? '').toLowerCase();
+      return s.name.toLowerCase().contains(q) ||
+          teacher.contains(q) ||
+          schedule.contains(q);
+    }).toList();
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.search),
+        hintText: 'Buscar por nombre, docente u horario…',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+      ),
+      onChanged: (value) {
+        setState(() => _searchQuery = value);
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // HEADER (banner azul)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildStatsHeader(List<Subject> subjects) {
+    final total = subjects.length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.indigo.shade500,
+              Colors.indigo.shade700,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¡Hola, estudiante! 👋',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Tienes $total materia${total == 1 ? '' : 's'} registradas',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white70,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // ESTADO VACÍO (sin botón, solo texto)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.menu_book_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'No tienes materias aún',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Usa el botón “Nueva materia” para agregar tu primera materia.',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CREAR / EDITAR / ELIMINAR
+  // ---------------------------------------------------------------------------
+
+  void _showSubjectDialog({Subject? existing}) {
+    showDialog(
+      context: context,
+      builder: (context) => _SubjectDialog(
+        existing: existing,
+        onSave: (draft) async {
+          final notifier = ref.read(subjectsProvider.notifier);
+
+          if (existing == null) {
+            await notifier.createSubject(draft);
+          } else {
+            await notifier.updateSubject(draft.copyWith(id: existing.id));
           }
         },
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Icons.school_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No tienes materias aún',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Agrega tu primera materia para comenzar\na organizar tus estudios',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => _showAddSubjectDialog(),
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar Materia'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubjectsList() {
-    return Column(
-      children: [
-        // Stats header
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_subjects.length}',
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Materias activas',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.trending_up,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Subjects list
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _subjects.length,
-            itemBuilder: (context, index) {
-              final subject = _subjects[index];
-              return _SubjectCard(
-                subject: subject,
-                onTap: () => _showSubjectDetails(subject),
-                onEdit: () => _showEditSubjectDialog(subject),
-                onDelete: () => _confirmDeleteSubject(subject),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showAddSubjectDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => _SubjectDialog(
-        onSave: (subject) {
-          setState(() {
-            _subjects.add(subject);
-          });
-        },
-      ),
-    );
-  }
-
-  void _showEditSubjectDialog(Subject subject) {
-    showDialog(
-      context: context,
-      builder: (context) => _SubjectDialog(
-        subject: subject,
-        onSave: (updatedSubject) {
-          setState(() {
-            final index = _subjects.indexWhere((s) => s.id == subject.id);
-            if (index != -1) {
-              _subjects[index] = updatedSubject;
-            }
-          });
-        },
-      ),
-    );
-  }
-
-  void _confirmDeleteSubject(Subject subject) {
-    showDialog(
+  Future<void> _confirmDeleteSubject(Subject subject) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Materia'),
-        content: Text('¿Estás seguro de que quieres eliminar "${subject.name}"?'),
+        title: const Text('Eliminar materia'),
+        content: Text(
+          '¿Seguro que deseas eliminar la materia "${subject.name}"?',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _subjects.removeWhere((s) => s.id == subject.id);
-              });
-              Navigator.of(context).pop();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
-  }
 
-  void _showSubjectDetails(Subject subject) {
-    context.go('/subjects/${subject.id}', extra: subject);
+    if (confirmed == true) {
+      await ref.read(subjectsProvider.notifier).deleteSubject(subject.id);
+    }
   }
 }
+
+// ---------------------------------------------------------------------------
+// CARD DE MATERIA
+// ---------------------------------------------------------------------------
 
 class _SubjectCard extends StatelessWidget {
   final Subject subject;
@@ -283,123 +279,82 @@ class _SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: subject.color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: subject.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.book,
-                      color: subject.color,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          subject.name,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          subject.teacher,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        onEdit();
-                      } else if (value == 'delete') {
-                        onDelete();
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit),
-                            SizedBox(width: 8),
-                            Text('Editar'),
-                          ],
-                        ),
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: subject.color.withValues(alpha: 0.2),
+                child: Icon(Icons.school, color: subject.color),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subject.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Eliminar', style: TextStyle(color: Colors.red)),
-                          ],
+                    ),
+                    if (subject.teacher != null &&
+                        subject.teacher!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subject.teacher!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[700],
                         ),
                       ),
                     ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    subject.schedule,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                    if (subject.schedule != null &&
+                        subject.schedule!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
                       Text(
-                        'Progreso',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      Text(
-                        '${(subject.progress * 100).toInt()}%',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                        subject.schedule!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: subject.progress.clamp(0, 1),
+                      minHeight: 6,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    onEdit();
+                  } else if (value == 'delete') {
+                    onDelete();
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Editar'),
                   ),
-                  const SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: subject.progress,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(subject.color),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Eliminar'),
                   ),
                 ],
               ),
@@ -411,13 +366,17 @@ class _SubjectCard extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// DIÁLOGO DE CREAR / EDITAR
+// ---------------------------------------------------------------------------
+
 class _SubjectDialog extends StatefulWidget {
-  final Subject? subject;
-  final Function(Subject) onSave;
+  final Subject? existing;
+  final Future<void> Function(Subject subject) onSave;
 
   const _SubjectDialog({
-    this.subject,
     required this.onSave,
+    this.existing,
   });
 
   @override
@@ -426,29 +385,22 @@ class _SubjectDialog extends StatefulWidget {
 
 class _SubjectDialogState extends State<_SubjectDialog> {
   final _formKey = GlobalKey<FormState>();
+
   late TextEditingController _nameController;
   late TextEditingController _teacherController;
   late TextEditingController _scheduleController;
-  Color _selectedColor = Colors.blue;
 
-  final List<Color> _colors = [
-    Colors.blue,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.red,
-    Colors.teal,
-    Colors.pink,
-    Colors.amber,
-  ];
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.subject?.name ?? '');
-    _teacherController = TextEditingController(text: widget.subject?.teacher ?? '');
-    _scheduleController = TextEditingController(text: widget.subject?.schedule ?? '');
-    _selectedColor = widget.subject?.color ?? Colors.blue;
+    _nameController =
+        TextEditingController(text: widget.existing?.name ?? '');
+    _teacherController =
+        TextEditingController(text: widget.existing?.teacher ?? '');
+    _scheduleController =
+        TextEditingController(text: widget.existing?.schedule ?? '');
   }
 
   @override
@@ -461,139 +413,93 @@ class _SubjectDialogState extends State<_SubjectDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
+
     return AlertDialog(
-      title: Text(widget.subject == null ? 'Agregar Materia' : 'Editar Materia'),
+      title: Text(isEdit ? 'Editar materia' : 'Nueva materia'),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre de la materia',
-                prefixIcon: Icon(Icons.book),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor ingresa el nombre';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _teacherController,
-              decoration: const InputDecoration(
-                labelText: 'Profesor',
-                prefixIcon: Icon(Icons.person),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor ingresa el profesor';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _scheduleController,
-              decoration: const InputDecoration(
-                labelText: 'Horario',
-                prefixIcon: Icon(Icons.schedule),
-                hintText: 'Ej: Lun, Mié - 8:00 AM',
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor ingresa el horario';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Color',
-                  style: Theme.of(context).textTheme.bodyMedium,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la materia',
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: _colors.map((color) {
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedColor = color;
-                        });
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: _selectedColor == color
-                              ? Border.all(color: Colors.grey[800]!, width: 3)
-                              : null,
-                        ),
-                        child: _selectedColor == color
-                            ? const Icon(Icons.check, color: Colors.white)
-                            : null,
-                      ),
-                    );
-                  }).toList(),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingresa un nombre';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _teacherController,
+                decoration: const InputDecoration(
+                  labelText: 'Docente (opcional)',
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _scheduleController,
+                decoration: const InputDecoration(
+                  labelText: 'Horario (opcional)',
+                  hintText: 'Ej. Lun y Mié 9:00–10:40',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
-          onPressed: _saveSubject,
-          child: const Text('Guardar'),
+        FilledButton(
+          onPressed: _saving ? null : _handleSave,
+          child: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(isEdit ? 'Guardar cambios' : 'Crear'),
         ),
       ],
     );
   }
 
-  void _saveSubject() {
+  Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final subject = Subject(
-      id: widget.subject?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _nameController.text,
-      teacher: _teacherController.text,
-      schedule: _scheduleController.text,
-      color: _selectedColor,
-      progress: widget.subject?.progress ?? 0.0,
+    setState(() => _saving = true);
+
+    final draft = Subject(
+      id: widget.existing?.id ?? '',
+      name: _nameController.text.trim(),
+      teacher: _teacherController.text.trim().isEmpty
+          ? null
+          : _teacherController.text.trim(),
+      schedule: _scheduleController.text.trim().isEmpty
+          ? null
+          : _scheduleController.text.trim(),
     );
 
-    widget.onSave(subject);
-    Navigator.of(context).pop();
+    try {
+      await widget.onSave(draft);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar materia: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
-}
-
-class Subject {
-  final String id;
-  final String name;
-  final String teacher;
-  final String schedule;
-  final Color color;
-  final double progress;
-
-  Subject({
-    required this.id,
-    required this.name,
-    required this.teacher,
-    required this.schedule,
-    required this.color,
-    required this.progress,
-  });
 }
