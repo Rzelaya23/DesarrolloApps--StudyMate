@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 
 import '../ai_message_models.dart';
 import '../data/ai_service.dart';
@@ -22,10 +23,19 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   AiChatState _state = const AiChatState(messages: []);
 
+  // Detecta la URL base según la plataforma
+  String _resolveBaseUrl() {
+    const override = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (override.isNotEmpty) return override;
+    if (kIsWeb) return 'http://localhost:4000';
+    if (Platform.isAndroid) return 'http://10.0.2.2:4000';
+    return 'http://localhost:4000';
+  }
+
   @override
   void initState() {
     super.initState();
-    _service = AiService(baseUrl: null); // ← pon tu URL cuando tengas backend
+    _service = AiService(baseUrl: _resolveBaseUrl());
   }
 
   @override
@@ -35,8 +45,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
     super.dispose();
   }
 
+  // Selector de archivos (muestra modal con botón de cancelar)
   Future<void> _pickFiles() async {
-    // Abrimos un bottom sheet con botón de cancelar
     final FilePickerResult? result =
         await showModalBottomSheet<FilePickerResult?>(
       context: context,
@@ -44,84 +54,77 @@ class _AiChatScreenState extends State<AiChatScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-  builder: (ctx) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.attach_file, color: Colors.purple),
-              const SizedBox(width: 10),
-              const Text(
-                'Seleccionar archivos',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  const Icon(Icons.attach_file, color: Colors.purple),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Seleccionar archivos',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(null),
+                  ),
+                ],
               ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(ctx).pop(null), // cancelar
+              const Divider(),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                icon: const Icon(Icons.folder_open, color: Colors.white),
+                label: const Text(
+                  'Abrir explorador de archivos',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: () async {
+                  final picked = await FilePicker.platform.pickFiles(
+                    allowMultiple: true,
+                  );
+                  Navigator.of(ctx).pop(picked);
+                },
               ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: const Text('Cancelar'),
+              ),
+              const SizedBox(height: 10),
             ],
           ),
-          const Divider(),
-          const SizedBox(height: 10),
-
-          // ====== BOTÓN MORADO ======
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              minimumSize: const Size(double.infinity, 50),
-            ),
-            icon: const Icon(Icons.folder_open, color: Colors.white),
-            label: const Text(
-              'Abrir explorador de archivos',
-              style: TextStyle(color: Colors.white),
-            ),
-            onPressed: () async {
-              final picked = await FilePicker.platform.pickFiles(
-                allowMultiple: true,
-              );
-              Navigator.of(ctx).pop(picked);
-            },
-          ),
-          const SizedBox(height: 10),
-
-          // ====== BOTÓN CANCELAR ======
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(null),
-            child: const Text('Cancelar'),
-          ),
-          const SizedBox(height: 10),
-        ],
-      ),
-    );
-  },
+        );
+      },
     );
 
     if (!mounted) return;
-    // Si el usuario cancela o no elige nada, salimos
     if (result == null || result.files.isEmpty) return;
 
-    // Construimos una lista TIPADA de AttachmentMeta usando 'extension' (no mimeType)
     final List<AttachmentMeta> added = result.files
         .where((f) => f.path != null)
         .map((f) => AttachmentMeta(
               name: f.name,
-              path: f.path!,           // seguro por el where
+              path: f.path!,
               sizeBytes: f.size,
-              extension: f.extension,  // <- campo correcto del modelo
+              extension: f.extension,
             ))
         .toList();
 
     if (added.isEmpty) return;
 
-    // Agregamos a los pendientes manteniendo los existentes
     setState(() {
       _state = _state.copyWith(
         pendingAttachments: [..._state.pendingAttachments, ...added],
@@ -138,6 +141,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
+  // Enviar mensaje al backend
   Future<void> _send() async {
     final text = _inputCtrl.text.trim();
     if (text.isEmpty || _state.sending) return;
@@ -158,9 +162,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
 
     try {
+      // Llamada al servicio (argumentos posicionales)
       final reply = await _service.sendMessage(
-        userText: userMsg.text,
-        attachments: _state.pendingAttachments,
+        userMsg.text,
+        _state.pendingAttachments,
       );
 
       setState(() {
@@ -174,7 +179,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     } catch (e) {
       final err = Message(
         id: _uuid.v4(),
-        text: '⚠️ Error: $e',
+        text: '⚠️ Error al conectar con la IA: $e',
         isUser: false,
         createdAt: DateTime.now(),
       );
@@ -213,7 +218,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
       body: Column(
         children: [
-          // Chips de adjuntos pendientes
+          // Archivos pendientes
           if (_state.pendingAttachments.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -232,7 +237,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
 
-          // Mensajes
+          // Lista de mensajes
           Expanded(
             child: ListView.builder(
               controller: _scrollCtrl,
@@ -268,14 +273,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
           ),
 
-          // Input
+          // Input de mensaje
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12).copyWith(bottom: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12).copyWith(bottom: 10),
               child: Row(
                 children: [
-                  // BOTÓN DE ADJUNTAR
+                  // Botón adjuntar
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -289,14 +295,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
                           right: -2,
                           top: -2,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.redAccent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${_state.pendingAttachments.length}',
-                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
@@ -305,7 +315,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
                   const SizedBox(width: 8),
 
-                  // INPUT
+                  // Campo de texto
                   Expanded(
                     child: TextField(
                       controller: _inputCtrl,
@@ -315,7 +325,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         hintText: 'Escribe tu mensaje...',
                         border: OutlineInputBorder(),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
                       onSubmitted: (_) => _send(),
                       enabled: !_state.sending,
@@ -324,11 +335,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
                   const SizedBox(width: 8),
 
-                  // ENVIAR
+                  // Botón enviar
                   IconButton.filled(
                     onPressed: _state.sending ? null : _send,
                     icon: _state.sending
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.send),
                   ),
                 ],

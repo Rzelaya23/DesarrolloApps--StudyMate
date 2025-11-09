@@ -1,0 +1,170 @@
+[
+  {
+    "method": "GET",
+    "path": "/api"
+  },
+  {
+    "method": "GET",
+    "path": "/api/health"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/register"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/login"
+  },
+  {
+    "method": "GET",
+    "path": "/api/auth/me"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/refresh"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/logout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/password/forgot"
+  },
+  {
+    "method": "POST",
+    "path": "/api/auth/password/reset"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/v1/students"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/v1/students"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/v1/students/{id}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/api/v1/students/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/api/v1/students/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/v1/students/{id}/preferences"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/api/v1/students/{id}/preferences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/courses"
+  },
+  {
+    "method": "POST",
+    "path": "/api/courses"
+  },
+  {
+    "method": "GET",
+    "path": "/api/courses/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/courses/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/courses/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/assignments"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/assignments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/assignments/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/api/assignments/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/api/assignments/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/assignments/{id}/submit"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/assignments/{id}/submissions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/assignments/bulk/complete"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/assignments/bulk/delete"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/v1/submissions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/submissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/v1/submissions/{id}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/submissions/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/api/v1/submissions/{id}/grade"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/api/submissions/{id}/grade"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/v1/events"
+  },
+  {
+    "method": "POST",
+    "path": "/api/api/v1/events"
+  },
+  {
+    "method": "GET",
+    "path": "/api/api/v1/events/{id}"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/api/v1/events/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/api/v1/events/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chat"
+  }
+]

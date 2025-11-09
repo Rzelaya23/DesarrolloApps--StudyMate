@@ -5,17 +5,24 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as fs from 'fs';
-
-// Si quieres, esto también se puede importar así:
-// import * as listEndpoints from 'express-list-endpoints';
+import helmet from 'helmet';
+import * as bodyParser from 'body-parser';
 const listEndpoints = require('express-list-endpoints');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Validación & CORS
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+  
+  app.use(helmet());
+  app.use(bodyParser.json({ limit: process.env.JSON_BODY_LIMIT || '2mb' }));
+  app.use(bodyParser.urlencoded({ limit: process.env.JSON_BODY_LIMIT || '2mb', extended: true }));
+
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableCors();
+  if (process.env.API_PREFIX) app.setGlobalPrefix(process.env.API_PREFIX);
+  app.enableShutdownHooks();
 
   // Prefijo global para rutas HTTP
   app.setGlobalPrefix('api');
@@ -52,21 +59,17 @@ async function bootstrap() {
 
   await app.listen(Number(process.env.PORT ?? 4000));
 
-  // ---- Dump de rutas (OpenAPI) ----
   const apiPrefix = (app as any).getGlobalPrefix?.() || '';
   const versionPrefix = process.env.API_VERSION_PREFIX || '';
 
   type PathMap = Record<string, any>;
   const paths: PathMap = (document as any).paths || {};
-
   const rows: Array<{ method: string; path: string }> = [];
 
   for (const [rawPath, methods] of Object.entries(paths)) {
-    for (finalM in (methods as Map<String, dynamic>).keys) {}
-    for (final m of Object.keys(methods as object)) {
-      const full = `/${[apiPrefix, versionPrefix, rawPath]
-        .filter(Boolean)
-        .join('/')}`.replace(/\/+/g, '/'); // normaliza dobles //
+    for (const m of Object.keys(methods)) {
+      const full = `/${[apiPrefix, versionPrefix, rawPath].filter(Boolean).join('/')}`
+        .replace(/\/+/g, '/');
       rows.push({ method: m.toUpperCase(), path: full });
     }
   }

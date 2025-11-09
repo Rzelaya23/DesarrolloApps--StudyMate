@@ -5,6 +5,15 @@ import 'package:mi_app/core/router/app_router.dart';
 import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'features/ai_chat/data/ai_service.dart';
+import 'features/ai_chat/ui/ai_chat_screen.dart';
+
+final _secure = const FlutterSecureStorage();
+
+final aiService = AiService(
+  tokenProvider: () async => await _secure.read(key: 'jwt'),
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
