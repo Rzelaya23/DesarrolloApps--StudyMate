@@ -1,3 +1,4 @@
+// lib/features/calendar/data/event_service.dart
 import 'package:dio/dio.dart';
 import 'package:mi_app/core/api/api_client.dart';
 import 'package:mi_app/features/calendar/models/calendar_models.dart';
@@ -44,7 +45,6 @@ class EventService {
   ) async {
     final apiClient = _buildClient(accessToken);
 
-    // 👇 Claves alineadas al backend (startsAt / endsAt)
     final payload = {
       'subjectId': event.subjectId,
       'title': event.title,
@@ -78,7 +78,6 @@ class EventService {
   ) async {
     final apiClient = _buildClient(accessToken);
 
-    // 👇 mismos nombres que en create
     final payload = {
       'subjectId': event.subjectId,
       'title': event.title,

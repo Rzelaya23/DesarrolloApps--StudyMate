@@ -1,8 +1,14 @@
+// lib/features/profile/screens/profile_screen.dart
 import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mi_app/core/router/app_router.dart';
+import 'package:mi_app/features/profile/data/profile_service.dart';
+
+// 👇 nuevos imports para estadísticas dinámicas
+import 'package:mi_app/features/subjects/providers/subjects_providers.dart';
+import 'package:mi_app/features/calendar/providers/calendar_providers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -12,13 +18,47 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  // Datos de ejemplo del usuario
+  ProfileDto? _profile;
+  bool _loading = false;
+  String? _error;
+
+  // Datos iniciales (se sobreescriben al cargar del backend)
   String userName = 'Roland Zelaya';
   String userEmail = 'rzelaya@estudiante.edu.sv';
   String userCareer = 'Ingeniería en Sistemas';
-  int totalSubjects = 3;
-  int totalEvents = 5;
-  double studyHours = 24.5;
+  double studyHours = 24.5; // por ahora dummy
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final service = ref.read(profileServiceProvider);
+      final me = await service.getProfile();
+      setState(() {
+        _profile = me;
+        userName = me.name;
+        userEmail = me.email;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error cargando perfil: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -41,22 +81,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 16),
-            _buildStatsCards(),
-            const SizedBox(height: 16),
-            _buildConfigurationSection(),
-            const SizedBox(height: 16),
-            _buildAchievementsSection(),
-            const SizedBox(height: 16),
-            _buildActionButtons(),
-            const SizedBox(height: 100), // Espacio para bottom nav
-          ],
-        ),
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollScrollViewWithError(
+              error: _error,
+              child: Column(
+                children: [
+                  _buildProfileHeader(),
+                  const SizedBox(height: 16),
+                  _buildStatsCards(),      // 👈 ahora dinámico
+                  const SizedBox(height: 16),
+                  _buildConfigurationSection(),
+                  const SizedBox(height: 16),
+                  _buildAchievementsSection(),
+                  const SizedBox(height: 16),
+                  _buildActionButtons(),
+                  const SizedBox(height: 100), // Espacio para bottom nav
+                ],
+              ),
+            ),
       bottomNavigationBar: BottomNavigationBar(
         key: const ValueKey('profile_bottom_nav'),
         type: BottomNavigationBarType.fixed,
@@ -92,7 +135,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context.go('/calendar');
                 break;
               case 3:
-              // Ya estamos en perfil
+                // Ya estamos en perfil
                 break;
             }
           }
@@ -140,9 +183,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text(
             userName,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 4),
 
@@ -150,8 +193,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text(
             userEmail,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
           ),
           const SizedBox(height: 4),
 
@@ -165,9 +208,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               userCareer,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
         ],
@@ -175,7 +218,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  /// 🔢 Stats dinámicos: materias y eventos desde providers
   Widget _buildStatsCards() {
+    // Materias reales
+    final subjectsMap = ref.watch(subjectsProvider);
+    final int subjectsCount = subjectsMap.length;
+
+    // Eventos reales (lista de CalendarEvent)
+    final eventsList = ref.watch(eventsProvider);
+    final int eventsCount = eventsList.length;
+
+    final String hoursLabel = '${studyHours.toInt()}h';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -184,7 +238,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.school,
               label: 'Materias',
-              value: totalSubjects.toString(),
+              value: subjectsCount.toString(),
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -193,7 +247,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.event,
               label: 'Eventos',
-              value: totalEvents.toString(),
+              value: eventsCount.toString(),
               color: Theme.of(context).colorScheme.secondary,
             ),
           ),
@@ -202,7 +256,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.access_time,
               label: 'Horas',
-              value: '${studyHours.toInt()}h',
+              value: hoursLabel,
               color: Colors.orange,
             ),
           ),
@@ -235,9 +289,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
             ),
             Text(
               label,
@@ -250,8 +304,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildConfigurationSection() {
-    final isDark =
-        ref.watch(themeNotifierProvider).isDarkmode; // 👈 lee AppTheme
+    final isDark = ref.watch(themeNotifierProvider).isDarkmode;
 
     return Card(
       key: const ValueKey('config_section_card'),
@@ -264,16 +317,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               'Configuración',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
           _buildConfigTile(
             icon: Icons.brightness_6,
             title: 'Tema',
-            subtitle: isDark ? 'Oscuro' : 'Claro', // ✅ nuevo flujo
+            subtitle: isDark ? 'Oscuro' : 'Claro',
             onTap: () {
-              ref.read(themeNotifierProvider.notifier).toggleDarkmode(); // ✅
+              ref.read(themeNotifierProvider.notifier).toggleDarkmode();
             },
           ),
           _buildConfigTile(
@@ -346,8 +399,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   'Logros',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -356,10 +409,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
+                color:
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: Theme.of(context)
@@ -383,8 +434,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     'Próximamente',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -447,15 +498,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showEditProfileDialog() {
+    if (_profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cargando perfil, inténtalo en un momento.'),
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
 
     final nameController = TextEditingController(text: userName);
     final emailController = TextEditingController(text: userEmail);
     final careerController = TextEditingController(text: userCareer);
+    final avatarController =
+        TextEditingController(text: _profile?.avatarUrl ?? '');
+    final tzController = TextEditingController(text: _profile?.timezone ?? '');
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Editar Perfil'),
         content: SingleChildScrollView(
           child: Column(
@@ -471,11 +533,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: emailController,
+                readOnly: true,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
+                  labelText: 'Email (solo lectura)',
                   prefixIcon: Icon(Icons.email),
                 ),
                 keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: avatarController,
+                decoration: const InputDecoration(
+                  labelText: 'Avatar URL',
+                  prefixIcon: Icon(Icons.image),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: tzController,
+                decoration: const InputDecoration(
+                  labelText: 'Zona horaria',
+                  prefixIcon: Icon(Icons.schedule),
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -490,20 +569,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                userName = nameController.text;
-                userEmail = emailController.text;
-                userCareer = careerController.text;
-              });
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Perfil actualizado')),
-              );
+            onPressed: () async {
+              try {
+                final service = ref.read(profileServiceProvider);
+                final updated = await service.updateProfile(
+                  UpdateProfilePayload(
+                    name: nameController.text,
+                    avatarUrl: avatarController.text.isEmpty
+                        ? null
+                        : avatarController.text,
+                    timezone:
+                        tzController.text.isEmpty ? null : tzController.text,
+                  ),
+                );
+                if (!mounted) return;
+                setState(() {
+                  _profile = updated;
+                  userName = updated.name;
+                  userEmail = updated.email;
+                });
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Perfil actualizado')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error al actualizar: $e')),
+                );
+              }
             },
             child: const Text('Guardar'),
           ),
@@ -514,19 +612,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showNotificationSettings() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Configuración de notificaciones próximamente')),
+      const SnackBar(
+        content: Text('Configuración de notificaciones próximamente'),
+      ),
     );
   }
 
   void _showLanguageSettings() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Configuración de idioma próximamente')),
+      const SnackBar(
+        content: Text('Configuración de idioma próximamente'),
+      ),
     );
   }
 
   void _showPrivacySettings() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Configuración de privacidad próximamente')),
+      const SnackBar(
+        content: Text('Configuración de privacidad próximamente'),
+      ),
     );
   }
 
@@ -535,22 +639,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Cerrar Sesión'),
         content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               context.go(AppRouter.login);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Cerrar Sesión'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Wrapper sencillo para mostrar error arriba del contenido si existe.
+class SingleChildScrollScrollViewWithError extends StatelessWidget {
+  final String? error;
+  final Widget child;
+
+  const SingleChildScrollScrollViewWithError({
+    super.key,
+    required this.error,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: MaterialBanner(
+                content: Text(error!),
+                backgroundColor: Colors.red.withOpacity(0.1),
+                leading: const Icon(Icons.error, color: Colors.red),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                    },
+                    child: const Text('Cerrar'),
+                  ),
+                ],
+              ),
+            ),
+          child,
         ],
       ),
     );

@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/calendar_models.dart';
-import '../providers/calendar_providers.dart';
+// Solo traemos CalendarEvent para evitar conflicto con Subject
+import 'package:mi_app/features/calendar/models/calendar_models.dart'
+    show CalendarEvent;
+
+import 'package:mi_app/features/calendar/providers/calendar_providers.dart';
+
+// Materias reales
+import 'package:mi_app/features/subjects/providers/subjects_providers.dart';
+import 'package:mi_app/features/subjects/models/subject.dart';
 
 class EventEditorSheet extends ConsumerStatefulWidget {
   const EventEditorSheet({
@@ -34,10 +41,10 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
 
     _title = TextEditingController(text: e?.title ?? '');
     _notes = TextEditingController(text: e?.notes ?? '');
-    _start = e?.start ??
-        DateTime(baseDay.year, baseDay.month, baseDay.day, 9, 0);
-    _end = e?.end ??
-        DateTime(baseDay.year, baseDay.month, baseDay.day, 10, 0);
+    _start =
+        e?.start ?? DateTime(baseDay.year, baseDay.month, baseDay.day, 9, 0);
+    _end =
+        e?.end ?? DateTime(baseDay.year, baseDay.month, baseDay.day, 10, 0);
     _subjectId = e?.subjectId;
   }
 
@@ -49,49 +56,49 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
   }
 
   Future<void> _pickStart() async {
-    final d = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
       initialDate: _start,
       firstDate: DateTime(2019),
       lastDate: DateTime(2035),
     );
-    if (!mounted || d == null) return;
+    if (!mounted || date == null) return;
 
-    final t = await showTimePicker(
+    final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_start),
     );
-    if (!mounted || t == null) return;
+    if (!mounted || time == null) return;
 
-    setState(
-      () => _start = DateTime(d.year, d.month, d.day, t.hour, t.minute),
-    );
-    if (!_end.isAfter(_start)) {
-      setState(() => _end = _start.add(const Duration(minutes: 30)));
-    }
+    setState(() {
+      _start = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      if (!_end.isAfter(_start)) {
+        _end = _start.add(const Duration(minutes: 30));
+      }
+    });
   }
 
   Future<void> _pickEnd() async {
-    final d = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
       initialDate: _end,
       firstDate: DateTime(2019),
       lastDate: DateTime(2035),
     );
-    if (!mounted || d == null) return;
+    if (!mounted || date == null) return;
 
-    final t = await showTimePicker(
+    final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_end),
     );
-    if (!mounted || t == null) return;
+    if (!mounted || time == null) return;
 
-    setState(
-      () => _end = DateTime(d.year, d.month, d.day, t.hour, t.minute),
-    );
-    if (!_end.isAfter(_start)) {
-      setState(() => _start = _end.subtract(const Duration(minutes: 30)));
-    }
+    setState(() {
+      _end = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      if (!_end.isAfter(_start)) {
+        _start = _end.subtract(const Duration(minutes: 30));
+      }
+    });
   }
 
   Future<void> _onSave() async {
@@ -102,6 +109,10 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
       return;
     }
 
+    // Guardamos referencias antes del primer await para evitar el lint
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     final notifier = ref.read(eventsProvider.notifier);
 
     final draft = CalendarEvent(
@@ -111,8 +122,7 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
       title: _title.text.trim(),
       start: _start,
       end: _end,
-      notes:
-          _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+      notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
     );
 
     setState(() => _saving = true);
@@ -125,45 +135,50 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      navigator.pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Error al guardar: $e')),
       );
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final subjects = ref.watch(subjectsProvider);
 
-    // Construimos la lista de items del dropdown
-    final subjectItems = subjects.entries.map((e) {
+    // Materias reales desde el backend
+    final Map<String, Subject> subjectsMap = ref.watch(subjectsProvider);
+    // values ya es List<Subject>, no necesitamos whereType
+    final List<Subject> subjectsList = subjectsMap.values.toList();
+
+    // Items para el dropdown (id, nombre, color)
+    final subjectItems = subjectsList.map((s) {
       return DropdownMenuItem<String>(
-        value: e.key,
+        value: s.id,
         child: Row(
           children: [
             CircleAvatar(
               radius: 6,
-              backgroundColor: e.value.color,
+              backgroundColor: s.color,
             ),
             const SizedBox(width: 8),
-            Text(e.value.name),
+            Text(s.name),
           ],
         ),
       );
     }).toList();
 
-    // Si el subjectId actual no existe en la lista de materias,
-    // dejamos el combo sin selección para evitar el crash.
-    final initialSubjectId = (_subjectId != null &&
-            subjects.containsKey(_subjectId))
-        ? _subjectId
-        : null;
+    // Validamos que el id seleccionado exista en el mapa
+    final initialSubjectId =
+        (_subjectId != null && subjectsMap.containsKey(_subjectId))
+            ? _subjectId
+            : null;
 
     return SafeArea(
       child: Padding(
@@ -194,15 +209,18 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
                     tooltip: 'Eliminar',
                     icon: const Icon(Icons.delete_outline),
                     onPressed: () async {
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+
                       try {
                         await ref
                             .read(eventsProvider.notifier)
                             .deleteEvent(widget.event!.id);
                         if (!mounted) return;
-                        Navigator.of(context).pop(true);
+                        navigator.pop(true);
                       } catch (e) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(content: Text('Error al eliminar: $e')),
                         );
                       }
@@ -212,6 +230,7 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
             ),
             const SizedBox(height: 12),
 
+            // Título
             TextField(
               controller: _title,
               decoration: const InputDecoration(
@@ -223,7 +242,7 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
 
             // Materia
             DropdownButtonFormField<String>(
-              initialValue: initialSubjectId,
+              initialValue: initialSubjectId, // evita warning de 'value'
               decoration: const InputDecoration(
                 labelText: 'Materia',
                 border: OutlineInputBorder(),
@@ -307,8 +326,7 @@ class _DateTimeButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        padding:
-            const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         side: BorderSide(color: cs.outlineVariant),
       ),
       child: Column(

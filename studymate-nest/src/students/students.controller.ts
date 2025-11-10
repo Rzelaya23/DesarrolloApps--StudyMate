@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -9,6 +9,19 @@ import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 @UseGuards(JwtAuthGuard)
 export class StudentsController {
   constructor(private readonly service: StudentsService) {}
+
+  // Perfil del usuario autenticado
+  @Get('me')
+  me(@Req() req: any) {
+    const uid = req.user?.id ?? req.user?.userId ?? req.user?.sub;
+    return this.service.get(uid);
+  }
+
+  @Patch('me')
+  updateMe(@Req() req: any, @Body() dto: UpdateStudentDto) {
+    const uid = req.user?.id ?? req.user?.userId ?? req.user?.sub;
+    return this.service.update(uid, dto);
+  }
 
   @Get()
   list() {

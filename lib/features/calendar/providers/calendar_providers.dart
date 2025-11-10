@@ -1,32 +1,11 @@
-import 'package:flutter/material.dart';
+// lib/features/calendar/providers/calendar_providers.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:mi_app/core/auth/auth_token_provider.dart';
 import 'package:mi_app/features/calendar/data/event_service.dart';
 import 'package:mi_app/features/calendar/models/calendar_models.dart';
 
-/// =============================================================
-/// SUBJECTS (Materias) – dummy para la UI
-/// =============================================================
-final subjectsProvider = Provider<Map<String, Subject>>((ref) {
-  return {
-    'math': const Subject(
-      id: 'math',
-      name: 'Matemáticas',
-      color: Colors.blue,
-    ),
-    'physics': const Subject(
-      id: 'physics',
-      name: 'Física',
-      color: Colors.red,
-    ),
-    'history': const Subject(
-      id: 'history',
-      name: 'Historia',
-      color: Colors.green,
-    ),
-  };
-});
+// 👇 Importa materias reales del backend
+import 'package:mi_app/features/subjects/providers/subjects_providers.dart';
 
 /// =============================================================
 /// Servicio de eventos
@@ -35,7 +14,9 @@ final eventServiceProvider = Provider<EventService>((ref) {
   return const EventService();
 });
 
-/// Si en alguna pantalla quieres consumir directamente el Future:
+/// =============================================================
+/// FutureProvider para obtener eventos del backend
+/// =============================================================
 final eventsFromBackendProvider =
     FutureProvider.autoDispose<List<CalendarEvent>>((ref) async {
   final token = ref.watch(authTokenProvider);
@@ -59,7 +40,6 @@ class EventsNotifier extends StateNotifier<List<CalendarEvent>> {
   final Ref _ref;
 
   EventService get _service => _ref.read(eventServiceProvider);
-
   String? get _token => _ref.read(authTokenProvider);
 
   Future<void> _loadFromBackend() async {
@@ -70,13 +50,13 @@ class EventsNotifier extends StateNotifier<List<CalendarEvent>> {
       final events = await _service.getEvents(token);
       state = List.unmodifiable(events);
     } catch (e) {
-      // En prod podrías loguear el error
+      print('❌ Error cargando eventos: $e');
     }
   }
 
   Future<void> refresh() => _loadFromBackend();
 
-  /// Crear evento: golpea backend y actualiza el estado
+  /// Crear evento y actualizar estado
   Future<CalendarEvent> createEvent(CalendarEvent draft) async {
     final token = _token;
     if (token == null || token.isEmpty) {
@@ -116,7 +96,9 @@ class EventsNotifier extends StateNotifier<List<CalendarEvent>> {
   }
 }
 
-/// Provider que usa la UI (EventEditorSheet, calendar view, etc.)
+/// =============================================================
+/// Provider principal usado por la UI del calendario
+/// =============================================================
 final eventsProvider =
     StateNotifierProvider<EventsNotifier, List<CalendarEvent>>(
   (ref) => EventsNotifier(ref),

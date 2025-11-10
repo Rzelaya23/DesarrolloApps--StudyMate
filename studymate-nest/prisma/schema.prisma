@@ -166,15 +166,15 @@ enum PlannerDifficulty {
 }
 
 model PlannerActivity {
-  id           String            @id @default(cuid())
-  userId       String
-  date         DateTime
-  title        String
-  durationMin  Int
-  priority     PlannerPriority
-  difficulty   PlannerDifficulty
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  userId      String
+  date        DateTime
+  title       String
+  durationMin Int
+  priority    PlannerPriority
+  difficulty  PlannerDifficulty
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@index([userId, date])
 }
