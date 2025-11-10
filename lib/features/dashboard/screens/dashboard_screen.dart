@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:mi_app/core/router/app_router.dart';
+import 'package:mi_app/features/dashboard/providers/dashboard_stats_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 👇 número de materias que viene de subjectsProvider
+    final subjectsCount = ref.watch(subjectsCountProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('StudyMate'),
@@ -51,16 +55,16 @@ class DashboardScreen extends ConsumerWidget {
                   Text(
                     '¡Hola, Estudiante! 👋',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Continuemos con tus estudios hoy',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
                   ),
                 ],
               ),
@@ -68,19 +72,19 @@ class DashboardScreen extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
-            // Quick stats
+            // Quick stats (Materias dinámico)
             Row(
-              children: const [
+              children: [
                 Expanded(
                   child: _StatCard(
                     title: 'Materias',
-                    value: '6',
+                    value: subjectsCount.toString(), // 👈 dinámico
                     icon: Icons.book,
                     color: Colors.blue,
                   ),
                 ),
-                SizedBox(width: 12),
-                Expanded(
+                const SizedBox(width: 12),
+                const Expanded(
                   child: _StatCard(
                     title: 'Tareas',
                     value: '3',
@@ -88,8 +92,8 @@ class DashboardScreen extends ConsumerWidget {
                     color: Colors.orange,
                   ),
                 ),
-                SizedBox(width: 12),
-                Expanded(
+                const SizedBox(width: 12),
+                const Expanded(
                   child: _StatCard(
                     title: 'Puntos',
                     value: '1,250',
@@ -106,8 +110,8 @@ class DashboardScreen extends ConsumerWidget {
             Text(
               'Acciones Rápidas',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
             const SizedBox(height: 16),
 
@@ -132,7 +136,6 @@ class DashboardScreen extends ConsumerWidget {
                   subtitle: 'Ver eventos',
                   icon: Icons.calendar_month,
                   color: Colors.green,
-                  // ✅ navegar a la nueva ruta
                   onTap: () => context.push(AppRouter.calendar),
                 ),
                 _ActionCard(
@@ -140,9 +143,7 @@ class DashboardScreen extends ConsumerWidget {
                   subtitle: 'Generar resúmenes',
                   icon: Icons.psychology,
                   color: Colors.purple,
-                  onTap: () {
-                    context.push(AppRouter.ai); // ← navega a la pestaña de IA
-                  },
+                  onTap: () => context.push(AppRouter.ai),
                 ),
                 _ActionCard(
                   title: 'Planificador',
@@ -160,8 +161,8 @@ class DashboardScreen extends ConsumerWidget {
             Text(
               'Actividad Reciente',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
             const SizedBox(height: 16),
 
@@ -208,13 +209,13 @@ class DashboardScreen extends ConsumerWidget {
         onTap: (index) {
           switch (index) {
             case 0:
-            // ya estamos en dashboard
+              // ya estamos en dashboard
               break;
             case 1:
               context.go(AppRouter.subjects);
               break;
             case 2:
-              context.go(AppRouter.calendar); // ✅ navega a Calendario
+              context.go(AppRouter.calendar);
               break;
             case 3:
               context.go(AppRouter.profile);
@@ -251,9 +252,9 @@ class _StatCard extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
             ),
             Text(
               title,
@@ -311,8 +312,8 @@ class _ActionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ),
               const SizedBox(height: 4),
