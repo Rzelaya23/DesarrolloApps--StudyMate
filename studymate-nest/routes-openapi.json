@@ -166,5 +166,29 @@
   {
     "method": "POST",
     "path": "/api/chat"
+  },
+  {
+    "method": "GET",
+    "path": "/api/planner/activities"
+  },
+  {
+    "method": "POST",
+    "path": "/api/planner/activities"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/planner/activities/{id}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/planner/activities/{id}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/planner/generate"
+  },
+  {
+    "method": "POST",
+    "path": "/api/planner/commit"
   }
 ]

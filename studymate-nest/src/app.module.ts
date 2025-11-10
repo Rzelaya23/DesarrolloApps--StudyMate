@@ -7,6 +7,7 @@ import { AssignmentsModule } from './assignments/assignments.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { EventsModule } from './events/events.module';
 import { AiModule } from './ai/ai.module';
+import { PlannerModule } from './planner/planner.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AiModule } from './ai/ai.module';
     SubmissionsModule,
     EventsModule,
     AiModule,
+    PlannerModule,
   ],
   controllers: [AppController],
   providers: [],
