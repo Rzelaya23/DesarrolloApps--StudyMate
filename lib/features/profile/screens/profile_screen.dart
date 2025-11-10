@@ -1,13 +1,14 @@
+// lib/features/profile/screens/profile_screen.dart
+import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:mi_app/core/router/app_router.dart';
 import 'package:mi_app/features/profile/data/profile_service.dart';
 
-// ⬇️ mismo provider que usas en el Dashboard
-import 'package:mi_app/features/dashboard/providers/dashboard_stats_providers.dart';
+// 👇 nuevos imports para estadísticas dinámicas
+import 'package:mi_app/features/subjects/providers/subjects_providers.dart';
+import 'package:mi_app/features/calendar/providers/calendar_providers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -21,14 +22,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _loading = false;
   String? _error;
 
-  // Datos de ejemplo del usuario (se sobreescriben con lo del backend)
+  // Datos iniciales (se sobreescriben al cargar del backend)
   String userName = 'Roland Zelaya';
   String userEmail = 'rzelaya@estudiante.edu.sv';
   String userCareer = 'Ingeniería en Sistemas';
-
-  // Eventos y horas siguen siendo dummy por ahora
-  int totalEvents = 5;
-  double studyHours = 24.5;
+  double studyHours = 24.5; // por ahora dummy
 
   @override
   void initState() {
@@ -91,7 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   _buildProfileHeader(),
                   const SizedBox(height: 16),
-                  _buildStatsCards(),
+                  _buildStatsCards(),      // 👈 ahora dinámico
                   const SizedBox(height: 16),
                   _buildConfigurationSection(),
                   const SizedBox(height: 16),
@@ -220,10 +218,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// Stats (Materias / Eventos / Horas)
-  /// Materias se toma del mismo provider que el Dashboard.
+  /// 🔢 Stats dinámicos: materias y eventos desde providers
   Widget _buildStatsCards() {
-    final subjectsCount = ref.watch(subjectsCountProvider);
+    // Materias reales
+    final subjectsMap = ref.watch(subjectsProvider);
+    final int subjectsCount = subjectsMap.length;
+
+    // Eventos reales (lista de CalendarEvent)
+    final eventsList = ref.watch(eventsProvider);
+    final int eventsCount = eventsList.length;
+
+    final String hoursLabel = '${studyHours.toInt()}h';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -233,7 +238,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.school,
               label: 'Materias',
-              value: subjectsCount.toString(), // 👈 dinámico
+              value: subjectsCount.toString(),
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -242,7 +247,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.event,
               label: 'Eventos',
-              value: totalEvents.toString(), // por ahora fijo
+              value: eventsCount.toString(),
               color: Theme.of(context).colorScheme.secondary,
             ),
           ),
@@ -251,7 +256,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.access_time,
               label: 'Horas',
-              value: '${studyHours.toInt()}h',
+              value: hoursLabel,
               color: Colors.orange,
             ),
           ),
@@ -299,8 +304,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildConfigurationSection() {
-    final isDark =
-        ref.watch(themeNotifierProvider).isDarkmode;
+    final isDark = ref.watch(themeNotifierProvider).isDarkmode;
 
     return Card(
       key: const ValueKey('config_section_card'),
@@ -429,10 +433,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Próximamente',
-                    style:
-                        Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -497,7 +500,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _showEditProfileDialog() {
     if (_profile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cargando perfil, inténtalo en un momento.')),
+        const SnackBar(
+          content: Text('Cargando perfil, inténtalo en un momento.'),
+        ),
       );
       return;
     }
@@ -636,8 +641,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Cerrar Sesión'),
-        content:
-            const Text('¿Estás seguro de que quieres cerrar sesión?'),
+        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -683,8 +687,7 @@ class SingleChildScrollScrollViewWithError extends StatelessWidget {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context)
-                          .hideCurrentMaterialBanner();
+                      ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
                     },
                     child: const Text('Cerrar'),
                   ),
