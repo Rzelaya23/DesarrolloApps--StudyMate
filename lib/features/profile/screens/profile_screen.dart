@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mi_app/core/router/app_router.dart';
+import 'package:mi_app/features/profile/data/profile_service.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -11,7 +12,11 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> { 
+  ProfileDto? _profile;
+  bool _loading = false;
+  String? _error;
+
   // Datos de ejemplo del usuario
   String userName = 'Roland Zelaya';
   String userEmail = 'rzelaya@estudiante.edu.sv';
@@ -19,6 +24,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int totalSubjects = 3;
   int totalEvents = 5;
   double studyHours = 24.5;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final service = ref.read(profileServiceProvider);
+      final me = await service.getMe();
+      setState(() {
+        _profile = me;
+        userName = me.name;
+        userEmail = me.email;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error cargando perfil: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() { _loading = false; });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -41,7 +76,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         child: Column(
           children: [
             _buildProfileHeader(),
@@ -447,11 +484,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showEditProfileDialog() {
+    if (_profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cargando perfil, inténtalo en un momento.')),
+      );
+      return;
+    }
     if (!mounted) return;
 
     final nameController = TextEditingController(text: userName);
     final emailController = TextEditingController(text: userEmail);
     final careerController = TextEditingController(text: userCareer);
+    final avatarController = TextEditingController(text: _profile?.avatarUrl ?? '');
+    final tzController = TextEditingController(text: _profile?.timezone ?? '');
 
     showDialog(
       context: context,
@@ -463,6 +508,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               TextField(
                 controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre completo',
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Email (solo lectura)',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: avatarController,
+                decoration: const InputDecoration(
+                  labelText: 'Avatar URL',
+                  prefixIcon: Icon(Icons.image),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: tzController,
+                decoration: const InputDecoration(
+                  labelText: 'Zona horaria',
+                  prefixIcon: Icon(Icons.schedule),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: careerController,
                 decoration: const InputDecoration(
                   labelText: 'Nombre completo',
                   prefixIcon: Icon(Icons.person),
@@ -494,17 +573,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                userName = nameController.text;
-                userEmail = emailController.text;
-                userCareer = careerController.text;
-              });
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Perfil actualizado')),
-              );
-            },
+            onPressed: () async {
+             try {
+               final service = ref.read(profileServiceProvider);
+               final updated = await service.updateMe(
+                 UpdateProfilePayload(
+                   name: nameController.text,
+                   avatarUrl: avatarController.text.isEmpty ? null : avatarController.text,
+                   timezone: tzController.text.isEmpty ? null : tzController.text,
+                 ),
+               );
+               if (!mounted) return;
+               setState(() {
+                 _profile = updated;
+                 userName = updated.name;
+                 userEmail = updated.email;
+               });
+               Navigator.of(context).pop();
+               ScaffoldMessenger.of(context).showSnackBar(
+                 const SnackBar(content: Text('Perfil actualizado')),
+               );
+             } catch (e) {
+               if (!mounted) return;
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text('Error al actualizar: $e')),
+               );
+             }
+           },
             child: const Text('Guardar'),
           ),
         ],
