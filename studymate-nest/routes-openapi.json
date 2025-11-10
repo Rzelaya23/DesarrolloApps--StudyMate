@@ -37,6 +37,14 @@
   },
   {
     "method": "GET",
+    "path": "/api/api/v1/students/me"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/api/v1/students/me"
+  },
+  {
+    "method": "GET",
     "path": "/api/api/v1/students"
   },
   {
