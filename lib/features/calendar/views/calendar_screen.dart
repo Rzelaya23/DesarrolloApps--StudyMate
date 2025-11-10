@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:go_router/go_router.dart';                           // 👈 nuevo
+import 'package:mi_app/core/router/app_router.dart';                 // 👈 nuevo
 
 import 'package:mi_app/features/calendar/models/calendar_models.dart';
 import 'package:mi_app/features/calendar/providers/calendar_providers.dart';
@@ -206,6 +208,35 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
           ],
         ),
+      ),
+
+      // ───────────── BottomNavigationBar para volver a Inicio ─────────────
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 2, // 0: Inicio, 1: Materias, 2: Calendario, 3: Perfil
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
+          BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Materias'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today), label: 'Calendario'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+        ],
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go(AppRouter.dashboard); // 👈 vuelve al dashboard
+              break;
+            case 1:
+              context.go(AppRouter.subjects);
+              break;
+            case 2:
+              // ya estamos en calendario
+              break;
+            case 3:
+              context.go(AppRouter.profile);
+              break;
+          }
+        },
       ),
     );
   }

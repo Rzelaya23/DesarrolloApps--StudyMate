@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:mi_app/core/router/app_router.dart';        // 👈 nuevo
 import '../models/subject.dart';
 import '../providers/subjects_providers.dart';
 
@@ -27,7 +28,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         title: const Text('Materias'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () => context.go(AppRouter.dashboard),   // 👈 vuelve al inicio
         ),
         actions: [
           IconButton(
@@ -97,6 +98,35 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             ),
           ],
         ),
+      ),
+
+      // 👇 MENÚ INFERIOR IGUAL QUE EN DASHBOARD / CALENDARIO
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 1, // 0: Inicio, 1: Materias, 2: Calendario, 3: Perfil
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
+          BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Materias'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today), label: 'Calendario'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+        ],
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go(AppRouter.dashboard);
+              break;
+            case 1:
+              // ya estamos en materias
+              break;
+            case 2:
+              context.go(AppRouter.calendar);
+              break;
+            case 3:
+              context.go(AppRouter.profile);
+              break;
+          }
+        },
       ),
     );
   }
