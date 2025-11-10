@@ -1,5 +1,5 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mi_app/core/router/app_router.dart';
 import 'package:mi_app/core/providers/theme_provider.dart';
@@ -32,8 +32,7 @@ class StudyMateApp extends ConsumerWidget {
       title: 'StudyMate',
       debugShowCheckedModeBanner: false,
       theme: appTheme.toThemeData(),
-      routerConfig: AppRouter.router,   // 👈 volvemos a tu router normal
-
+      routerConfig: AppRouter.router,
       supportedLocales: const [
         Locale('es', 'ES'),
         Locale('en', 'US'),

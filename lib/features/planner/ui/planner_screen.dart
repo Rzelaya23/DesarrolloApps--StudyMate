@@ -1,317 +1,204 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/planner_models.dart';
-import '../providers/planner_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../providers/planner_providers.dart';
+import 'package:mi_app/core/auth/auth_token_provider.dart';
 
 class PlannerScreen extends ConsumerStatefulWidget {
   const PlannerScreen({super.key});
-
   @override
   ConsumerState<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _PlannerScreenState extends ConsumerState<PlannerScreen> with SingleTickerProviderStateMixin {
+class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   final _titleCtrl = TextEditingController();
-  final _minsCtrl = TextEditingController();
-  Priority _prio = Priority.media;
-  Difficulty _diff = Difficulty.intermedia;
+  final _durationCtrl = TextEditingController();
+  String _priority = 'MEDIA';
+  String _difficulty = 'INTERMEDIA';
+  DateTime _selectedDate = DateTime.now();
 
-  late final TabController _tab;
+  final _startCtrl = TextEditingController(text: '08:00');
+  final _endCtrl   = TextEditingController(text: '18:00');
+  final _focusCtrl = TextEditingController(text: '50');
+  final _breakCtrl = TextEditingController(text: '10');
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
-    // <<< agregado: fuerza rebuild al cambiar de pestaña para mostrar/ocultar el FAB >>>
-    _tab.addListener(() => setState(() {}));
+    _ensureJwt(ref); // fire-and-forget
   }
 
   @override
   void dispose() {
     _titleCtrl.dispose();
-    _minsCtrl.dispose();
-    _tab.dispose();
+    _durationCtrl.dispose();
+    _startCtrl.dispose();
+    _endCtrl.dispose();
+    _focusCtrl.dispose();
+    _breakCtrl.dispose();
     super.dispose();
   }
 
+  Future<void> _ensureJwt(WidgetRef ref) async {
+    final s = const FlutterSecureStorage();
+    final existing = await s.read(key: 'jwt');
+    if (existing == null || existing.isEmpty) {
+      // Tu token válido de pruebas (el mismo de Postman)
+      const t = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmNmNmODQ0MC04ZTQ0LTQ3NTYtOTQ2Ni02MzhmYWY4ZThkMTEiLCJlbWFpbCI6ImRhbmlAZXhhbXBsZS5jb20iLCJyb2xlIjoiU1RVREVOVCIsImlhdCI6MTc2Mjc1ODkxOSwiZXhwIjoxNzYyNzU5ODE5fQ.dBGXOT3Rm6YGDce-Sb4rYT_M9i9C_AHTYCLkFY7-NMo';
+      await s.write(key: 'jwt', value: t);
+      await ref.read(authTokenProvider.notifier).set(t);
+    } else {
+      await ref.read(authTokenProvider.notifier).set(existing);
+    }
+  }
+
+  Future<void> _onAdd() async {
+    // Garantiza token inmediatamente antes de llamar repo
+    await _ensureJwt(ref);
+
+    final title = _titleCtrl.text.trim();
+    final duration = int.tryParse(_durationCtrl.text.trim()) ?? 0;
+    if (title.isEmpty || duration <= 0) return;
+
+    await ref.read(plannerActivitiesProvider.notifier).addActivity(
+      title: title,
+      durationMin: duration,
+      priority: _priority,
+      difficulty: _difficulty,
+      date: _selectedDate,
+    );
+
+    _titleCtrl.clear();
+    _durationCtrl.clear();
+  }
+
+  Future<void> _onGenerate() async {
+    await _ensureJwt(ref);
+
+    final start = _startCtrl.text.trim();
+    final end   = _endCtrl.text.trim();
+    final focus = int.tryParse(_focusCtrl.text.trim()) ?? 50;
+    final brk   = int.tryParse(_breakCtrl.text.trim()) ?? 10;
+
+    await ref.read(plannerScheduleProvider.notifier).generate(
+      date: _selectedDate,
+      start: start,
+      end: end,
+      focusMin: focus,
+      breakMin: brk,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(plannerProvider);
-    final notifier = ref.read(plannerProvider.notifier);
-
-    // <<< agregado: saber si estamos en la pestaña "Horario" (índice 1) >>>
-    final bool isScheduleTab = _tab.index == 1;
+    final activitiesState = ref.watch(plannerActivitiesProvider);
+    final scheduleState   = ref.watch(plannerScheduleProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Planificador'),
-        actions: [
-          IconButton(
-            tooltip: 'Generar horario',
-            onPressed: state.actividades.isEmpty ? null : () {
-              notifier.generar();
-              _tab.animateTo(1);
-            },
-            // Antes: Icon(Icons.auto_schedule)
-            icon: const Icon(Icons.schedule),
-          ),
-        ],
-
-        bottom: TabBar(
-          controller: _tab,
-          tabs: const [
-            Tab(text: 'Actividades'),
-            Tab(text: 'Horario'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tab,
+      appBar: AppBar(title: const Text('Planificador')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          // --- Tab Actividades ---
-          ListView(
-            padding: const EdgeInsets.all(16),
+          const Text('Nueva actividad', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Título')),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _durationCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Duración (min)'),
+          ),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              Text('Nueva actividad', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Título',
-                  border: OutlineInputBorder(),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _priority,
+                  items: const [
+                    DropdownMenuItem(value: 'BAJA', child: Text('BAJA')),
+                    DropdownMenuItem(value: 'MEDIA', child: Text('MEDIA')),
+                    DropdownMenuItem(value: 'ALTA', child: Text('ALTA')),
+                  ],
+                  onChanged: (v) => setState(() => _priority = v ?? 'MEDIA'),
+                  decoration: const InputDecoration(labelText: 'Prioridad'),
                 ),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _minsCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Duración (min)',
-                  border: OutlineInputBorder(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _difficulty,
+                  items: const [
+                    DropdownMenuItem(value: 'FACIL', child: Text('FACIL')),
+                    DropdownMenuItem(value: 'INTERMEDIA', child: Text('INTERMEDIA')),
+                    DropdownMenuItem(value: 'DIFICIL', child: Text('DIFICIL')),
+                  ],
+                  onChanged: (v) => setState(() => _difficulty = v ?? 'INTERMEDIA'),
+                  decoration: const InputDecoration(labelText: 'Dificultad'),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<Priority>(
-                      value: _prio,
-                      items: Priority.values.map((p) =>
-                        DropdownMenuItem(value: p, child: Text(p.name.toUpperCase()))
-                      ).toList(),
-                      onChanged: (v) => setState(() => _prio = v ?? _prio),
-                      decoration: const InputDecoration(
-                        labelText: 'Prioridad',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: DropdownButtonFormField<Difficulty>(
-                      value: _diff,
-                      items: Difficulty.values.map((d) =>
-                        DropdownMenuItem(value: d, child: Text(d.name.toUpperCase()))
-                      ).toList(),
-                      onChanged: (v) => setState(() => _diff = v ?? _diff),
-                      decoration: const InputDecoration(
-                        labelText: 'Dificultad',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              FilledButton.icon(
-                onPressed: () {
-                  final title = _titleCtrl.text.trim();
-                  final mins = int.tryParse(_minsCtrl.text.trim() );
-                  if (title.isEmpty || mins == null || mins <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Completa título y minutos (>0)'))
-                    );
-                    return;
-                  }
-                  ref.read(plannerProvider.notifier).addActividad(
-                    titulo: title,
-                    minutos: mins,
-                    prioridad: _prio,
-                    dificultad: _diff,
-                  );
-                  _titleCtrl.clear();
-                  _minsCtrl.clear();
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Agregar'),
-              ),
-              const SizedBox(height: 20),
-              Text('Actividades del día', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 10),
-              ...state.actividades.map((a) => Card(
-                child: ListTile(
-                  title: Text(a.titulo),
-                  subtitle: Text('${a.minutos} min • ${a.prioridad.name} • ${a.dificultad.name}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => notifier.removeActividad(a.id),
-                  ),
-                ),
-              )),
-              const SizedBox(height: 24),
-              Text('Parámetros', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: _TimeField(
-                    label: 'Inicio',
-                    value: state.settings.start,
-                    onPick: (dt) => notifier.setVentana(dt, state.settings.end),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _TimeField(
-                    label: 'Fin',
-                    value: state.settings.end,
-                    onPick: (dt) => notifier.setVentana(state.settings.start, dt),
-                  )),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: _NumberField(
-                    label: 'Foco (min)',
-                    initial: state.settings.focoMin,
-                    onChanged: (v) => notifier.setParametros(focoMin: v),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _NumberField(
-                    label: 'Descanso (min)',
-                    initial: state.settings.breakMin,
-                    onChanged: (v) => notifier.setParametros(breakMin: v),
-                  )),
-                ],
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: state.actividades.isEmpty
-                    ? null
-                    : () {
-                        notifier.generar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Horario generado ✅')),
-                        );
-                        _tab.animateTo(1); // pasa automáticamente a la pestaña "Horario"
-                      },
-                icon: const Icon(Icons.schedule),
-                label: const Text('Generar horario'),
               ),
             ],
           ),
-
-          // --- Tab Horario ---
-          Builder(
-            builder: (_) {
-              final r = state.resultado;
-              if (r.isEmpty) {
-                return const Center(child: Text('Genera tu horario para ver el resultado'));
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: r.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, i) {
-                  final b = r[i];
-                  final tStart = TimeOfDay.fromDateTime(b.start).format(context);
-                  final tEnd = TimeOfDay.fromDateTime(b.end).format(context);
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: b.isBreak
-                          ? Colors.teal.withOpacity(0.15)
-                          : Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                      child: Icon(
-                        b.isBreak ? Icons.coffee : Icons.task_alt,
-                        color: b.isBreak ? Colors.teal : Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    title: Text(b.titulo),
-                    subtitle: Text('$tStart — $tEnd'),
-                  );
-                },
-              );
-            },
+          const SizedBox(height: 12),
+          ElevatedButton(onPressed: _onAdd, child: const Text('+ Agregar')),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 12),
+          const Text('Generar horario', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _startCtrl, decoration: const InputDecoration(labelText: 'Inicio (HH:mm)'))),
+              const SizedBox(width: 12),
+              Expanded(child: TextField(controller: _endCtrl, decoration: const InputDecoration(labelText: 'Fin (HH:mm)'))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _focusCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Foco (min)'))),
+              const SizedBox(width: 12),
+              Expanded(child: TextField(controller: _breakCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Descanso (min)'))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(onPressed: _onGenerate, child: const Text('Generar')),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 12),
+          const Text('Actividades', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          activitiesState.when(
+            data: (list) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: list.map<Widget>((a) => ListTile(
+                title: Text(a.title),
+                subtitle: Text('${a.durationMin} min • ${a.priority} • ${a.difficulty}'),
+              )).toList(),
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Error: $e'),
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 12),
+          const Text('Horario generado', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          scheduleState.when(
+            data: (slots) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: slots.isEmpty
+                  ? <Widget>[const Text('Sin bloques generados')]
+                  : slots.map<Widget>((s) => ListTile(
+                      title: Text(s.title),
+                      subtitle: Text('${s.start.toLocal()} - ${s.end.toLocal()}'),
+                      trailing: s.isBreak ? const Text('Break') : null,
+                    )).toList(),
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Error: $e'),
           ),
         ],
       ),
-
-      // <<< agregado: FAB visible solo en la pestaña "Horario" y si hay actividades >>>
-      floatingActionButton: isScheduleTab && state.actividades.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                notifier.generar();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Horario generado ✅')),
-                );
-              },
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Generar horario'),
-            )
-          : null,
-    );
-  }
-}
-
-class _TimeField extends StatelessWidget {
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onPick;
-  const _TimeField({required this.label, required this.value, required this.onPick, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final time = TimeOfDay.fromDateTime(value);
-    return TextField(
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        suffixIcon: const Icon(Icons.schedule),
-      ),
-      controller: TextEditingController(text: time.format(context)),
-      onTap: () async {
-        final picked = await showTimePicker(context: context, initialTime: time);
-        if (picked != null) {
-          final now = value;
-          onPick(DateTime(now.year, now.month, now.day, picked.hour, picked.minute));
-        }
-      },
-    );
-  }
-}
-
-class _NumberField extends StatefulWidget {
-  final String label;
-  final int initial;
-  final ValueChanged<int> onChanged;
-  const _NumberField({required this.label, required this.initial, required this.onChanged, super.key});
-
-  @override
-  State<_NumberField> createState() => _NumberFieldState();
-}
-
-class _NumberFieldState extends State<_NumberField> {
-  late final TextEditingController _c;
-  @override
-  void initState() { super.initState(); _c = TextEditingController(text: widget.initial.toString()); }
-  @override
-  void dispose() { _c.dispose(); super.dispose(); }
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _c,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(labelText: widget.label, border: const OutlineInputBorder()),
-      onChanged: (v) { final n = int.tryParse(v); if (n != null) widget.onChanged(n); },
     );
   }
 }
