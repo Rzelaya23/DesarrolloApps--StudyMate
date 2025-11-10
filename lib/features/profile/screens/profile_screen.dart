@@ -1,9 +1,13 @@
-import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:mi_app/core/providers/theme_provider.dart';
 import 'package:mi_app/core/router/app_router.dart';
 import 'package:mi_app/features/profile/data/profile_service.dart';
+
+// ⬇️ mismo provider que usas en el Dashboard
+import 'package:mi_app/features/dashboard/providers/dashboard_stats_providers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -17,11 +21,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _loading = false;
   String? _error;
 
-  // Datos de ejemplo del usuario (se sobreescriben cuando cargamos del backend)
+  // Datos de ejemplo del usuario (se sobreescriben con lo del backend)
   String userName = 'Roland Zelaya';
   String userEmail = 'rzelaya@estudiante.edu.sv';
   String userCareer = 'Ingeniería en Sistemas';
-  int totalSubjects = 3;
+
+  // Eventos y horas siguen siendo dummy por ahora
   int totalEvents = 5;
   double studyHours = 24.5;
 
@@ -38,7 +43,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
     try {
       final service = ref.read(profileServiceProvider);
-      // ⬅️ usamos el método que sí existe en ProfileService
       final me = await service.getProfile();
       setState(() {
         _profile = me;
@@ -216,7 +220,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  /// Stats (Materias / Eventos / Horas)
+  /// Materias se toma del mismo provider que el Dashboard.
   Widget _buildStatsCards() {
+    final subjectsCount = ref.watch(subjectsCountProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -225,7 +233,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.school,
               label: 'Materias',
-              value: totalSubjects.toString(),
+              value: subjectsCount.toString(), // 👈 dinámico
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -234,7 +242,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _buildStatCard(
               icon: Icons.event,
               label: 'Eventos',
-              value: totalEvents.toString(),
+              value: totalEvents.toString(), // por ahora fijo
               color: Theme.of(context).colorScheme.secondary,
             ),
           ),
@@ -292,7 +300,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildConfigurationSection() {
     final isDark =
-        ref.watch(themeNotifierProvider).isDarkmode; // 👈 lee AppTheme
+        ref.watch(themeNotifierProvider).isDarkmode;
 
     return Card(
       key: const ValueKey('config_section_card'),
@@ -675,8 +683,8 @@ class SingleChildScrollScrollViewWithError extends StatelessWidget {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      // solo se oculta cerrando el banner visualmente
-                      ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                      ScaffoldMessenger.of(context)
+                          .hideCurrentMaterialBanner();
                     },
                     child: const Text('Cerrar'),
                   ),
